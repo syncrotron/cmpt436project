@@ -26,7 +26,7 @@ With http timeout times being anywhere from 120 seconds to 5 seconds, there is n
 
 ##### <img src="https://image.flaticon.com/icons/svg/490/490366.svg" width="64" >**&nbsp; &nbsp;Build an Easily Expandable System** 
 
-* [ ] As this system will be designed in a manor that is unspecific to a particular communication protocol, transmission/receiving medium, or other network specific technology, the ability to swap out, add, remove and use multiple different system components is key. For the purpose of this project, the system will have specific ability to facilitate the expansion of the following aspects:
+* [ ] As this system will be designed in a manner that is not specific to a particular communication protocol, transmission/receiving medium, or other network specific technology, the ability to swap out, add, remove and use multiple different system components is key. For the purpose of this project, the system will have specific ability to facilitate the expansion of the following aspects:
   * [ ] Encoding Protocol: As a varying array of encoding schemes may be needed for different applications, the system should have the capability to add, remove and change schemes when necessary. 
   
   * [ ] Transmission/Receiving Capabilities: As it would be hard to determine  universal physical transmission capabilities for the already 2000+ satellites in orbit now, with undefined numbers in the future, the system should be extremely versatile in its capabilities to accept different custom coded transmigration interfaces.
@@ -38,7 +38,7 @@ With http timeout times being anywhere from 120 seconds to 5 seconds, there is n
 
 * [ ] Downlink: Communication to ground systems from the near or deep space networks is the second pivotal communication hurdles for the system. All date with a dependable, non-latent network final destination will pass through the downlink system.
 
-* [ ] Interlink: Communication between domains groups in the deep space network is the third pivotal communication hurdles for the system. With a large majority of network traffic being between domain groups, this will be the work horse of the system. Subsystems of this would include: 
+* [ ] Interlink: Communication between domain groups in the deep space network is the third pivotal communication hurdle for the system. With a large majority of network traffic being between domain groups, this will be the work horse of the system. Subsystems of this would include: 
   * [ ] Latency Management: Mechanisms to deal with the previously listed latency rates between celestial bodies or other satellites 
   
   * [ ] Packet Reassembly: Packets are bound to get lost or corrupted in the depths of space, thus the system must be able to reassemble and error check any received data to maintain reliability and message quality.
@@ -59,7 +59,7 @@ With http timeout times being anywhere from 120 seconds to 5 seconds, there is n
  
 ##### <img src="https://image.flaticon.com/icons/svg/76/76318.svg" width="64" >**&nbsp; &nbsp; Custom Protocol**
 
-* [ ] Create Protocol: As some users will not want to derive there own encoding for messages, a basic protocol optimized for data transmission quality may be a good addition.
+* [ ] Create Protocol: As some users will not want to derive their own encoding for messages, a basic protocol optimized for data transmission quality may be a good addition.
 
 
 **[SVG Authors:](https://www.flaticon.com)** Freepik, Iconnice, Smashicons, and Becris

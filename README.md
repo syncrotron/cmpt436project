@@ -65,4 +65,4 @@ With http timeout times being anywhere from 120 seconds to 5 seconds, there is n
 **[SVG Authors:](https://www.flaticon.com)** Freepik, Iconnice, Smashicons, and Becris
 
 
-**Project Authors:** Fredrick Johansson, Nicholas Brunoro, Wai Chung Fung, and Sam Horovatin
+**Project Authors:** Fredrik Johansson, Nicholas Brunoro, Wai Chung Fung, and Sam Horovatin

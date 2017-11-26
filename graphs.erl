@@ -3,6 +3,8 @@
 -export([start/0]).
 -export([test/0]).
 
+-record(message, {id, position, sequence, destination, body}).
+
 println(String) ->
     io:format("~s~n",[String])
   .
@@ -52,82 +54,186 @@ minimumEdge(Graph, MinEdge, [H|T])->
 minimumEdge(Graph, MinEdge,[])->
   MinEdge.
 
-checkForTarget([],Target)->
-  false
-  ;
-checkForTarget([H|T],Target) ->
-  io:format("Check for target~s~n",[H]),
-  case H == Target of
-    true -> H;
-    false -> checkForTarget(T,Target)
-  end
-  .
 
-getLabelsAndEdges(Graph, [H|RestofEdges])->
+
+labelsAndEdgesAsList(Graph,[])->
+  empty;
+
+labelsAndEdgesAsList(Graph, [H|RestofEdges])->
 
 
   L = getEdgeLabel(Graph,H),
   {Label,Edge} = {L, H},
   NewElement = [{Label,Edge}],
-  getLabelsAndEdges(Graph, RestofEdges, NewElement)
+  labelsAndEdgesAsList(Graph, RestofEdges, NewElement)
   .
 
-getLabelsAndEdges(Graph,[H|T], List) ->
+labelsAndEdgesAsList(Graph,[H|T], List) ->
   io:format("Labels and Edges: ~w~n",[List]),
 
 
   L = getEdgeLabel(Graph,H),
   {Label,Edge} = {L, H},
   NewElement = [{Label,Edge}],
-  getLabelsAndEdges(Graph, T, List++NewElement)
+  labelsAndEdgesAsList(Graph, T, List++NewElement)
   ;
 
-getLabelsAndEdges(Graph,[], List) ->
+labelsAndEdgesAsList(Graph,[], List) ->
   lists:sort(List)
   .
 
 
-greedySearch(G, V,Target) ->
-  Neighbours = digraph:out_neighbours(G,V),
+checkForTarget([],Target)->
+  %didn't find target
+  not_found
+  ;
+checkForTarget([H|T],Target) ->
+  %io:format("Check for target~s~n",[H]),
+  case H == Target of
+    %We've found the target
+    true -> H;
+    %Keep checking
+    false -> checkForTarget(T,Target)
+  end
+  .
 
+greedySearch(G,StartV, Target) ->
+  NAedges = digraph:in_edges(G,StartV),
+
+  greedySearch(G,StartV,Target,NAedges)
+  .
+
+greedySearch(G, V,Target, DontUseEdges) ->
+
+
+
+  Neighbours = digraph:out_neighbours(G,V),
+  %NonVisited = Neighbours--VisitedNodes,
   X = checkForTarget(Neighbours, Target),
-  println("Gothere"),
-  case X == Target of
-    true->X;
-    false->
+
+  case X of
+    Target->
+      {found,X};
+
+    not_found->
+      %OutEdges = digraph:out_edges(G,V),
+      %MinEdge = minimumEdge(G, OutEdges),
       OutEdges = digraph:out_edges(G,V),
-      MinEdge = minimumEdge(G, OutEdges),
-      V2 = getVertex(G, MinEdge),
-      greedySearch(G, V2, Target)
+      InEdges = digraph:in_edges(G,V),
+      UseEdges = OutEdges--DontUseEdges,
+      Sorted = labelsAndEdgesAsList(G,UseEdges),
+      case Sorted of
+        empty->
+          not_found;
+        _->
+          {Labels,Edges} = lists:unzip(Sorted),
+          case forEachEdge(G,UseEdges,Target, DontUseEdges++InEdges) of
+            {found,SendtoV}->
+              SendtoV;
+            not_found->
+              not_found
+          end
+        end
+      %V2 = getVertex(G, MinEdge),
+      %greedySearch(G, V2, Target,VisitedNodes++V)
     end
 
   .
 
-test()->
-  G = digraph:new(),
-  Mars1 = digraph:add_vertex(G,"Mars1",{{x,32},{y,40}}),
-  Saturn2 = digraph:add_vertex(G,"Saturn2",{{x,55},{y,45}}),
-  Pluto1 = digraph:add_vertex(G,"Pluto1", {{x,100},{y,99}}),
-  Sun1 = digraph:add_vertex(G, "Sun1",{{x,5},{y,5}}),
-  {{x,X},{y,Y}} = getVertexCoords(G,"Mars1"),
-  Yy = getYCoord(G,"Saturn2"),
-  io:format("Coords: ~w~n",[X]),
-  io:format("Y Saturn2 :~w~n ",[Yy]),
+forEachEdge(G,[],Target, DontUseEdges)->
+  not_found
+  ;
 
-  EL0 = calcEuclidean(G,"Mars1","Saturn2"),
-  {E,E1} = addEdge(G,"Mars1","Saturn2", EL0),
-  El1 = calcEuclidean(G,Mars1,Pluto1),
-  {FooEdge,_} = addEdge(G,"Mars1","Saturn2", El1),
+forEachEdge(G,[Edge|TheRest],Target, DontUseEdges)->
+  V = getVertex(G,Edge),
+  %case lists:member(V,VisitedNodes) of
+  %  true->
+      %dont look at vertices already visited
+  %    println("Hi"),
+  %    forEachEdge(G,TheRest, Target, VisitedNodes);
+  %  false->
+      case greedySearch(G,V,Target,DontUseEdges) of
+        {found,X} ->
+          SendtoV = V,
+          {found,SendtoV};
+        not_found->
+          forEachEdge(G,TheRest, Target, DontUseEdges)
+        end
+  %end
 
-  addEdge(G,Mars1,Sun1,calcEuclidean(G,Mars1,Sun1)),
-  io:format("Edge Label: ~w~n",[getEdgeLabel(G,FooEdge)]),
-  io:format("Edges Saturn2: ~w~n",[digraph:out_edges(G,"Saturn2")]),
-  OutEdges = digraph:out_edges(G,Mars1),
-  EdgesAndLabels = getLabelsAndEdges(G,OutEdges),
-  io:format("getLabelsAndEdges test:~w~n",[EdgesAndLabels]),
-  io:format("Min edge: ~w~n: ", [getEdgeLabel(G,minimumEdge(G, OutEdges))])
-  %io:format("~w~n",[greedySearch(G, Mars1, f)])
   .
+
+
+
+test()->
+  %Sattelites = [{SatName, Coords}]
+  Satellites = [{"Mars1",{{x,32},{y,40},["Saturn1","Sun1"]}}, {"Saturn1",{{x,50},{y,70}},["Mars1","Sun1","Pluto1"]},  {"Sun1",{{x,5},{y,5}},["Mars1","Saturn1"]}],
+
+  Earth1 = {"Earth1", {{x,32},{y,25}}},
+  Graph = makeGraph(Earth1),
+  %
+  Mars1 = {"Mars1",{{x,32},{y,40}},[{"Sun1",{{x,5},{y,5}},[{"Mercury1",{{x,15},{y,15}},[]}]}]},
+
+  addVertex(Graph,"Earth1", Mars1),
+  io:format("Testing graph:",[]),
+  io:format("GetVertexCoords testMars1: ~w~n", [getVertexCoords(Graph,"Mars1")]),
+  io:format("Edges Earth, : ~w~n", [digraph:out_edges(Graph,"Earth1")]),
+  io:format("Edges Mars1, : ~w~n", [digraph:out_edges(Graph,"Mars1")]),
+  io:format("Edges Sun1, : ~w~n", [digraph:out_edges(Graph,"Sun1")]),
+  io:format("Edges Mercury1, : ~w~n", [digraph:out_edges(Graph,"Mercury1")]),
+  greedySearch(Graph,"Earth1","Fun1")
+
+  .
+
+forEachIKnow(G,I,[H|R])->
+  addVertex(G,I,H),
+  forEachIKnow(G,I,R)
+  ;
+
+forEachIKnow(G,I,[])->
+    true
+    .
+
+addVertex(Graph, V0Name,V1)->
+  io:format("V1: ~w~n,",[V1]),
+  {VertexName, Coord,Knows } = V1,
+
+  %Check if vertex in graph
+  case digraph:vertex(Graph,VertexName) of
+    %Add new vertex as we havent seen it before
+    false ->
+        digraph:add_vertex(Graph, VertexName, Coord);
+    %Vertex already exists
+    {V,Label} ->
+      ok
+  end,
+
+  %calc distance
+  Dist =calcEuclidean(Graph,V0Name,VertexName),
+  addEdge(Graph, V0Name, VertexName, Dist),
+
+  %add everything else I know to graph
+  case Knows of
+    []->
+      println(VertexName++"knows no others");
+
+    _->
+      println(VertexName++" knows someone"),
+      forEachIKnow(Graph,VertexName,Knows)
+
+  end
+
+  .
+
+makeGraph(Root)->
+  G = digraph:new(),
+  {VertexName, Coord} = Root,
+  io:format("~w~n",[Coord]),
+  digraph:add_vertex(G,VertexName,Coord),
+
+  G.
+
+
 
 addEdge(G,V0,V1,Label)->
   E0 = digraph:add_edge(G,V0,V1,Label),

@@ -3,8 +3,6 @@
 -export([start/0]).
 -export([test/0]).
 
--record(message, {id, position, sequence, destination, body}).
-
 println(String) ->
     io:format("~s~n",[String])
   .
@@ -29,8 +27,6 @@ calcEuclidean(G, V0, V1)->
   io:format("X1 is: ~w~n", [X1]),
   io:format("Y0 is: ~w~n", [Y0]),
   io:format("Y1 is: ~w~n", [Y1]),
-
-
   X = X1 - X0,
   Y = Y1 - Y0,
   %Z = Z1 - Z0,
@@ -55,32 +51,31 @@ minimumEdge(Graph, MinEdge,[])->
   MinEdge.
 
 
-
+%case for when calling with empty list
 labelsAndEdgesAsList(Graph,[])->
   empty;
 
+%labelsAndEdgesAsList joins edges with their labels
+%returns them as [{Label,Edge}]
 labelsAndEdgesAsList(Graph, [H|RestofEdges])->
-
-
   L = getEdgeLabel(Graph,H),
   {Label,Edge} = {L, H},
   NewElement = [{Label,Edge}],
   labelsAndEdgesAsList(Graph, RestofEdges, NewElement)
   .
-
 labelsAndEdgesAsList(Graph,[H|T], List) ->
   io:format("Labels and Edges: ~w~n",[List]),
-
-
   L = getEdgeLabel(Graph,H),
   {Label,Edge} = {L, H},
   NewElement = [{Label,Edge}],
   labelsAndEdgesAsList(Graph, T, List++NewElement)
   ;
-
+%When done return Sorted version from minEdgeLabel to maxEdgeLabel
 labelsAndEdgesAsList(Graph,[], List) ->
   lists:sort(List)
   .
+
+
 
 
 checkForTarget([],Target)->
@@ -98,17 +93,19 @@ checkForTarget([H|T],Target) ->
   .
 
 greedySearch(G,StartV, Target) ->
-  NAedges = digraph:in_edges(G,StartV),
 
-  greedySearch(G,StartV,Target,NAedges)
+  greedySearch(G,StartV,Target,[])
   .
 
+%Greedily search for the target Vertex.
+%G: The Graph
+%V: The Vertex Whose neighbours are being searched
+%Target:Target Vertex
+%DontUseEdges: Dont want to use edges that lead back to Vertices we've checked
+%returns the neihgbour of the Start Nodes Vertex who will lead to the Target
 greedySearch(G, V,Target, DontUseEdges) ->
 
-
-
   Neighbours = digraph:out_neighbours(G,V),
-  %NonVisited = Neighbours--VisitedNodes,
   X = checkForTarget(Neighbours, Target),
 
   case X of
@@ -116,52 +113,44 @@ greedySearch(G, V,Target, DontUseEdges) ->
       {found,X};
 
     not_found->
-      %OutEdges = digraph:out_edges(G,V),
-      %MinEdge = minimumEdge(G, OutEdges),
       OutEdges = digraph:out_edges(G,V),
       InEdges = digraph:in_edges(G,V),
       UseEdges = OutEdges--DontUseEdges,
       Sorted = labelsAndEdgesAsList(G,UseEdges),
+
       case Sorted of
         empty->
           not_found;
+
         _->
           {Labels,Edges} = lists:unzip(Sorted),
+
           case forEachEdge(G,UseEdges,Target, DontUseEdges++InEdges) of
             {found,SendtoV}->
               SendtoV;
+
             not_found->
               not_found
           end
-        end
-      %V2 = getVertex(G, MinEdge),
-      %greedySearch(G, V2, Target,VisitedNodes++V)
-    end
+      end
+  end
 
   .
 
 forEachEdge(G,[],Target, DontUseEdges)->
   not_found
   ;
-
+%forEachEdge acts as a loop for greedySearch
 forEachEdge(G,[Edge|TheRest],Target, DontUseEdges)->
   V = getVertex(G,Edge),
-  %case lists:member(V,VisitedNodes) of
-  %  true->
-      %dont look at vertices already visited
-  %    println("Hi"),
-  %    forEachEdge(G,TheRest, Target, VisitedNodes);
-  %  false->
-      case greedySearch(G,V,Target,DontUseEdges) of
-        {found,X} ->
-          SendtoV = V,
-          {found,SendtoV};
-        not_found->
-          forEachEdge(G,TheRest, Target, DontUseEdges)
-        end
-  %end
-
-  .
+  case greedySearch(G,V,Target,DontUseEdges) of
+    {found,_} ->
+      SendtoV = V,
+        {found,SendtoV};
+    not_found->
+      forEachEdge(G,TheRest, Target, DontUseEdges)
+  end
+.
 
 
 
@@ -191,8 +180,8 @@ forEachIKnow(G,I,[H|R])->
   ;
 
 forEachIKnow(G,I,[])->
-    true
-    .
+  true
+  .
 
 addVertex(Graph, V0Name,V1)->
   io:format("V1: ~w~n,",[V1]),
@@ -225,6 +214,7 @@ addVertex(Graph, V0Name,V1)->
 
   .
 
+%make a graph from a given vertex with its coordinates
 makeGraph(Root)->
   G = digraph:new(),
   {VertexName, Coord} = Root,

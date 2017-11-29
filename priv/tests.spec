@@ -1,3 +1,3 @@
-{alias, root, "./suites/"}.
-{logdir, "./logs/"}.
-{suites, root, all}.
+{alias, testroot, "../test/suites/"}.
+{logdir, "../test/logs/"}.
+{suites, testroot, all}.

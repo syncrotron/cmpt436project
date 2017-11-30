@@ -1,7 +1,7 @@
 %% @author Fredrik Johansson
 
 -module(messagestore).
--include("../message.hrl").
+-include("../include/message.hrl").
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, handle_info/2, code_change/3]).
 -export([start/0, get_message/1, add_message/1, flag_message_for_deletion/1, has_complete_message/1]).

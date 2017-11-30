@@ -28,10 +28,11 @@ init() ->
 test()->
   %application:set_env(mnesia, dir, ?DomaintableDB),
   Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
+  Saturn1 = #object{id = 2, position = {100,-4, 70}, delta_pos =x},
   %insert_object(Mars1),
+  %insert_object(Saturn1),
   Objects = object_by_Id(1),
   [Obj|OtherObjects] = Objects,
-  io:format("~p~n",[Mars1]),
   Marsid = Mars1#object.id,
   io:format("~p~n",[Obj]),
   case Obj#object.id of
@@ -40,8 +41,13 @@ test()->
       io:format("Read passed test~n",[]);
     _Else->
       io:format("Read failed test~n",[])
-  end
+  end,
+  {_, AllObjects}= getAll(),
+  AllObjects,
+  Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
+  sortedSmallToTarget(Target)
   .
+
 
 
 
@@ -92,3 +98,53 @@ object_by_position(Position) ->
 remove_object(Id) ->
     ObjTrans = fun() -> mnesia:delete({domaintable, Id}) end,
     mnesia:activity(transaction, ObjTrans).
+
+%%%getAll: Get all objects in domaintable
+%%%returns all objects in domaintable as {atomic, [Objects]}
+getAll() ->
+  ObjTrans = fun() ->
+    mnesia:select(domaintable,[{'_',[],['$_']}])
+  end,
+  mnesia:transaction(ObjTrans).
+
+
+%%%sortedSmallEntries: Makes a sorted list of all entries in the table. Calculates distances of all to target and sorts from minimum through all accordingly and returns a list in the form [{DistFloat, Object}]
+sortedSmallToTarget(Target)->
+  GetAll = getAll(),
+  case GetAll of
+    []->
+      [];
+    _Else->
+      {_,Objects} = GetAll,
+      sortedSmallToTarget(Objects, Target, [])
+    end
+  .
+
+sortedSmallToTarget(Objects,Target, List)->
+  case Objects of
+    []->
+      lists:sort(List);
+    _Else->
+      %ID = Obj#object.id
+      [Obj|Rest] = Objects,
+      Dist = calcEuclidean(Obj, Target),
+      Element = [{Dist, Obj}],
+    sortedSmallToTarget(Rest, Target, List++Element)
+    end
+  .
+calcEuclidean(Obj0, Obj1)->
+  {X0,Y0,Z0} = Obj0#object.position,
+  {X1,Y1,Z1} = Obj1#object.position,
+
+  io:format("X0 is: ~w~n", [X0]),
+  io:format("X1 is: ~w~n", [X1]),
+  io:format("Y0 is: ~w~n", [Y0]),
+  io:format("Y1 is: ~w~n", [Y1]),
+  X = X1 - X0,
+  Y = Y1 - Y0,
+  Z = Z1-Z0,
+  %Z = Z1 - Z0,
+  %math:sqrt((X*X)+ (Y*Y) + (Z*Z))
+
+  math:sqrt((X*X)+ (Y*Y) + (Z*Z))
+  .

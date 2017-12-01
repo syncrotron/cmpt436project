@@ -28,27 +28,33 @@ loop_through_file(Message,Acc,{ok,Bin}, ValidData, Data) when is_binary(Bin) ->
       % Too few bytes to decode character, prepend to next byte and try again.
 	    loop_through_file(Message,Rest,file:read(Message,1), ValidData, Data);
 	  Result when is_binary(Result) ->
-      MetadataEnd = unicode:list_to_binary("</metadata>"),
+      MetadataEnd = list_to_binary("</metadata>"),
       Length = erlang:byte_size(MetadataEnd),
       % If is a utf8 character, append to the valid data.
       Binary = <<ValidData/binary, Result/binary>>,
       % Check if reached </metadata> tag.
-      case binary:match(Binary, MetadataEnd, {scope, {erlang:byte_size(Binary), -Length}}) of % Starts at end - length of the ValidData for a match of the tag.
-        {_,_} ->
-          % Found match and reached end of metadata.
-          rest_of_file(Message,<<>>,file:read(Message,1024), Binary, Data);
-        nomatch ->
-          % Keep going.
-          loop_through_file(Message,<<>>,file:read(Message,1), Binary, Data)
+      case erlang:byte_size(Binary) >= Length of  % Check that it is long enough to contain the metadata end tag.
+        true ->
+          case binary:match(Binary, MetadataEnd, [{scope, {erlang:byte_size(Binary), -Length}}]) of % Starts at end - length of the ValidData for a match of the tag.
+            {_,_} ->
+              % Found match and reached end of metadata.
+              rest_of_file(Message,<<>>,file:read(Message,1024), Binary, Data);
+            nomatch ->
+              % Keep going.
+              loop_through_file(Message,<<>>,file:read(Message,1), Binary, Data)
+          end;
+        false ->
+            % Keep going.
+            loop_through_file(Message,<<>>,file:read(Message,1), Binary, Data)
       end
   end.
 
 %% End of metadata was reached, so read the rest of the file until EOF and append it to Data.
-rest_of_file(_,_,eof, ValidData, Data) ->
-  decode(ValidData, Data);
-rest_of_file(Message, _, {ok,Bin}, ValidData, Data) when is_binary(Bin) ->
+rest_of_file(_,_,eof, MetaData, Data) ->
+  decode(MetaData, Data);
+rest_of_file(Message, _, {ok,Bin}, MetaData, Data) when is_binary(Bin) ->
   Data = <<Data/binary, Bin/binary>>,
-  rest_of_file(Message, <<>>,file:read(Message,1024), ValidData, Data).
+  rest_of_file(Message, <<>>,file:read(Message,1024), MetaData, Data).
 
 %% https://dzone.com/articles/erlang-binaries-and-bitstrings
 %% erlang.org/euc/07/papers/1700Gustafsson.pdf  - introduces bit strings and BIFs for them.
@@ -56,13 +62,13 @@ rest_of_file(Message, _, {ok,Bin}, ValidData, Data) when is_binary(Bin) ->
 %% http://learnyousomeerlang.com/starting-out-for-real#binary-comprehensions
 %% http://user.it.uu.se/~pergu/papers/erlang05.pdf
 
-%% ValidData and Data are binary/bit string. Note if number of bits in a bit string is divisible by 8, it is also a binary.
-%% ValidData MUST be in UTF-8 to contain metadata and possibly the message/data.
+%% ValidData and Data are binary/bit string. NOTE: if number of bits in a bit string is divisible by 8, it is also a binary.
+%% ValidData MUST be in UTF-8 to contain metadata and possibly the message/data.  ValidData may contain data if there was no metadata end tag.
 decode(ValidData, Data) ->
   ValidDataSize = erlang:bit_size(ValidData),
   DataSize = erlang:bit_size(Data),
-  io:format("Number of bits in metadata: ~w", [ValidDataSize]),
-  io:format("Number of bits in data: ~w", [DataSize]),
+  io:format("Number of bits in metadata: ~w~n", [ValidDataSize]),
+  io:format("Number of bits in data: ~w~n", [DataSize]),
 
   % Decode binary
   case unicode:characters_to_list(ValidData, unicode) of % unicode is an alias for utf8
@@ -73,13 +79,15 @@ decode(ValidData, Data) ->
       io:format("Something went wrong with ValidData extraction."),
       false;
     Decoded ->
-      io:format("~w", [Decoded]),
-      parse(Decoded)
+      io:format("~s~n", [Decoded]),
+      io:format("~w~n", [Decoded]),
+      parse(Decoded, Data)
   end.
 
 
-parse(Data) ->
+parse(MetaData, Data) ->
   % Parse metadata
+  % We could actually do this with binary directly instead.
   ok.
 
 

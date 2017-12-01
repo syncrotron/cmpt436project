@@ -5,6 +5,7 @@
 -include("../include/domaintable.hrl").
 -export([init/0]).
 -export([test/0]).
+-export([foo/0,insert_object/1,remove_object/1,calcEuclidean/2]).
 
 
 %%% init: intizalizes table on system boot
@@ -30,7 +31,7 @@ test()->
   Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
   Saturn1 = #object{id = 2, position = {100,-4, 70}, delta_pos =x},
   %insert_object(Mars1),
-  %insert_object(Saturn1),
+  insert_object(Saturn1),
   Objects = object_by_Id(1),
   [Obj|OtherObjects] = Objects,
   Marsid = Mars1#object.id,
@@ -44,12 +45,34 @@ test()->
   end,
   {_, AllObjects}= getAll(),
   AllObjects,
+  remove_object(1),
   Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
   sortedSmallToTarget(Target)
+
   .
 
 
+foo()->
+  application:set_env(mnesia, dir, ?TestDomaintableDB),
 
+  application:start(mnesia),
+  %mnesia:delete_schema()
+  mnesia:delete_table(testtable),
+
+  %ok,_ =  mnesia:create_schema([node()]),
+
+  {_, Ok} = mnesia:create_table(testtable,
+                    [{attributes, record_info(fields, object)},
+                     %You dont have to specify index in our case as mnesia uses first field of record for inde by default.
+                     %{index, [#object.id]}]).
+                     {record_name, object},
+                     {type,set}]),%for testing.
+                     %{type, bag}]).                 %%%Allows for multiple unique entries under 1 key. Managed by table handler
+  Ok.
+  %{_, DelOk} = mnesia:delete_table(domaintable),
+  %Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
+  %{_,InsertOk} = insert_object(Mars1),
+  %InsertOk.
 
 %%%%%%%%%%%%%%%
 %%% PRIVATE %%%
@@ -71,7 +94,8 @@ insert_object(Id, Position, Delta_pos) ->
                     position=Position,
                     delta_pos=Delta_pos,
                     last_msg_t_stamp=erlang:timestamp()},
-                    write)
+                    write),
+                    ok
                end,
     %mnesia:activity(transaction, ObjTrans).
     mnesia:transaction(ObjTrans).
@@ -96,8 +120,10 @@ object_by_position(Position) ->
 %%% object_by_Id: Deletes an entire object history from the table
 %%%      Id: 64 bit unique address, reminicent of IP address to identify objects universally
 remove_object(Id) ->
-    ObjTrans = fun() -> mnesia:delete({domaintable, Id}) end,
-    mnesia:activity(transaction, ObjTrans).
+    ObjTrans = fun() ->
+      mnesia:delete({domaintable, Id})
+     end,
+    mnesia:transaction(ObjTrans).
 
 %%%getAll: Get all objects in domaintable
 %%%returns all objects in domaintable as {atomic, [Objects]}

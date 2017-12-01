@@ -11,3 +11,4 @@
 -record(object, {id, position, delta_pos, last_msg_t_stamp}).
 
 -define(DomaintableDB, "../domaindb").
+-define(TestDomaintableDB, "../test/testdomaindb").

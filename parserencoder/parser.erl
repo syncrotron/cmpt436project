@@ -1,25 +1,26 @@
 -module(parser).
 -include("../include/tags.hrl").
 -include("../include/message.hrl").
--export([start/0, spawnParser/1, read_file_chunks/1,loop_through_file/5, rest_of_file/5, decode/2, parse/4, send_msghandler/1]).
+-export([start/0, spawnParser/1, read_file_chunks/1,loop_through_file/5, rest_of_file/5, decode/2, parse/4, send_msghandler/1, field_num/1, set_field/3]).
 
 start() ->
   % Read from folder for files
-  {ok, FileNames} = file:list_dir_all("binaryfiles"),
+  {ok, FileNames} = file:list_dir_all("./binaryfiles/"),
+  io:format("~s~n", [FileNames]),
   spawnParser(FileNames).
 
-
-spawnParser([Head | Tail]) ->
+spawnParser([Head|Tail]) ->
   % Spawn parser processes here for each file
-  spawn(parser, read_file_chunks, [Head]),
-  spawnParser(Tail).
-
+  Pid = spawn(parser, read_file_chunks, ["./binaryfiles/" ++ Head]),
+  spawnParser(Tail);
+spawnParser([]) ->
+  ok.
 
 %& Read from raw file one byte at a time.
 read_file_chunks(FileName) ->
- {ok,Message} = file:open(FileName,[read,binary]),
- loop_through_file(Message,<<>>,file:read(Message,1), <<>>, <<>>). % <<>> is bit syntax
-
+  io:format("~s~n", [FileName]),
+  {ok,Message} = file:open(FileName,[read,binary]),
+  loop_through_file(Message,<<>>,file:read(Message,1), <<>>, <<>>). % <<>> is bit syntax
 
 %% Reached end of file from Result case, ValidData contains utf8 (part of the message may also be utf8 unless we double encode), Data may contain the message.
 loop_through_file(_,<<>>,eof, ValidData, Data) ->
@@ -109,15 +110,36 @@ parse(MetaData, Data, Record, [Head | Tail]) ->
   TagsRegEx = element(1,Head),
   % Maybe check if the tags exist before splitting the string.
   IsolateSplit = re:split(MetaData,TagsRegEx,[{return,list},{parts,3}]),    % Returns a list with 3 parts [before head tag, data between tags, after end tag] with the tags removed.
-  FieldData = lists:nth(2, IsolateSplit),                                   % Get the 2nd part of the list containing the data
-  RecordField = element(2,Head),
-  % TODO a field cannot be accessed through a variable.
-  % TODO Maybe I can define the entire function as a macro?
-  % http://erlang.org/pipermail/erlang-questions/2013-February/072406.html
-  UpdatedRecord = Record#message{UpdatedRecord = FieldData},                % Update the record's appropriate field.
-  parse(MetaData, Data, UpdatedRecord, Tail).                               % Recurse
+  case (length(IsolateSplit) >= 2) of
+    true ->
+      FieldData = lists:nth(2, IsolateSplit),                               % Get the 2nd part of the list containing the data
+      RecordField = element(2,Head),
+      % TODO a field cannot be accessed through a variable.
+      % TODO Maybe I can define the entire function as a macro?
+      % http://erlang.org/pipermail/erlang-questions/2013-February/072406.html
+      UpdatedRecord = set_field(RecordField, FieldData, Record),
+      %UpdatedRecord = Record#message{UpdatedRecord = FieldData},               % Update the record's appropriate field.
+      parse(MetaData, Data, UpdatedRecord, Tail);                              % Recurse
+    false ->
+      % Nothing in the metadata. Keep going.
+      parse(MetaData, Data, Record, Tail)
+  end.
 
+% https://stackoverflow.com/questions/10821930/erlang-dynamic-record-editing
+field_num(Field) ->
+  Fields = record_info(fields, message),
+  DifField = fun (FieldName) -> Field /= FieldName end,
+  case length(lists:takewhile(DifField, Fields)) of
+    Length when Length =:= length(Fields) ->
+      {error, not_found};
+    Length ->
+      Length + 2
+  end.
+
+set_field(Field, Value, Record) ->
+  setelement(field_num(Field), Record, Value).
 
 send_msghandler(Record) ->
+  io:format("~w~n", [Record]),
   % Message pass to message handler the record.
   ok.

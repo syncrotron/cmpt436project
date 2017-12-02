@@ -1,7 +1,7 @@
 -module(parser).
 -include("../include/tags.hrl").
 -include("../include/message.hrl").
--export([start/0, spawnParser/1, read_file_chunks/1,loop_through_file/5, rest_of_file/5, decode/2, parse/4, send_msghandler/1, field_num/1, set_field/3]).
+-export([start/0, spawnParser/1, read_file_chunks/1,loop_through_file/5, rest_of_file/5, decode/2, parse/4, send_msghandler/1, field_num/1, get_type/2, set_field/3]).
 
 start() ->
   % Read from folder for files
@@ -67,8 +67,8 @@ loop_through_file(Message,Acc,{ok,Bin}, ValidData, Data) when is_binary(Bin) ->
 rest_of_file(_,_,eof, MetaData, Data) ->
   decode(MetaData, Data);
 rest_of_file(Message, _, {ok,Bin}, MetaData, Data) when is_binary(Bin) ->
-  Data = <<Data/binary, Bin/binary>>,
-  rest_of_file(Message, <<>>,file:read(Message,1024), MetaData, Data).
+  NewData = <<Data/binary, Bin/binary>>,
+  rest_of_file(Message, <<>>,file:read(Message,1), MetaData, NewData).
 
 
 %% https://dzone.com/articles/erlang-binaries-and-bitstrings
@@ -96,7 +96,7 @@ decode(ValidData, Data) ->
     Decoded ->
       io:format("~s~n", [Decoded]),
       io:format("~w~n", [Decoded]),
-      Record = #message{id = <<>>, position = {0,0,0}, sequence = {0,0}, destination = {0,0,0}, body = <<>>},
+      Record = #message{id = <<>>, sender = {0,0,0}, sequence = {0,0}, request= <<>>, ftype = <<>>, destination = {0,0,0}, body = <<>>},
       parse(Decoded, Data, Record, ?TAGS)
   end.
 
@@ -109,17 +109,17 @@ parse(MetaData, Data, Record,[]) ->
 parse(MetaData, Data, Record, [Head | Tail]) ->
   TagsRegEx = element(1,Head),
   % Maybe check if the tags exist before splitting the string.
-  IsolateSplit = re:split(MetaData,TagsRegEx,[{return,list},{parts,3}]),    % Returns a list with 3 parts [before head tag, data between tags, after end tag] with the tags removed.
-  case (length(IsolateSplit) >= 2) of
+  IsolateData = re:split(MetaData,TagsRegEx,[{return,list},{parts,3}]),    % Returns a list with 3 parts [before head tag, data between tags, after end tag] with the tags removed.
+  case (length(IsolateData) >= 2) of
     true ->
-      FieldData = lists:nth(2, IsolateSplit),                               % Get the 2nd part of the list containing the data
-      RecordField = element(2,Head),
+      FieldData = get_type(Head, lists:nth(2, IsolateData)),                     % Get the 2nd part of the list containing the data
+      RecordField = element(2, Head),
       % TODO a field cannot be accessed through a variable.
       % TODO Maybe I can define the entire function as a macro?
       % http://erlang.org/pipermail/erlang-questions/2013-February/072406.html
       UpdatedRecord = set_field(RecordField, FieldData, Record),
-      %UpdatedRecord = Record#message{UpdatedRecord = FieldData},               % Update the record's appropriate field.
-      parse(MetaData, Data, UpdatedRecord, Tail);                              % Recurse
+      %UpdatedRecord = Record#message{UpdatedRecord = FieldData},           % Update the record's appropriate field.
+      parse(MetaData, Data, UpdatedRecord, Tail);                           % Recurse
     false ->
       % Nothing in the metadata. Keep going.
       parse(MetaData, Data, Record, Tail)
@@ -138,6 +138,18 @@ field_num(Field) ->
 
 set_field(Field, Value, Record) ->
   setelement(field_num(Field), Record, Value).
+
+%% Gets the appropriate data based on type in the tag definition.
+get_type(TagDef, FieldData) ->
+  case element(3,TagDef) of
+    binary ->
+      io:format("~w", [FieldData]),
+      unicode:characters_to_binary(FieldData);
+    tuple ->
+      {ok, Tokens, _} = erl_scan:string(FieldData ++ "."),
+      {ok, Tuple} = erl_parse:parse_term(Tokens),
+      Tuple
+  end.
 
 send_msghandler(Record) ->
   io:format("~w~n", [Record]),

@@ -1,7 +1,15 @@
 -module(encoder).
 -include("../include/tags.hrl").
 -include("../include/message.hrl").
--export([set_metadata/1, encode/2, send_message/2, write_message_to_file/2]).
+-export([start/0, set_metadata/1, encode/2, send_message/2, write_message_to_file/2]).
+
+% Loop through listening for a message containing a Record.
+start() ->
+  receive
+    Record ->
+      spawn(encoder, set_metadata,[Record])
+  end,
+  start().
 
 %% Record - contains the message and information for metadata.
 set_metadata(Record) ->

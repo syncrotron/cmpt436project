@@ -3,10 +3,13 @@
 
 %%% List of tuples of tags.  Tuple elements have {regular expression for Header Tag|Ending Tag, record field to access, type case, size}
 -define(TAGS,[
-{"<msgID>|</msgID>", id, binary, 0},
-{"<sender>|</sender>", sender, tuple, 3},
+{"<sourceid>|</sourceid>", sourceid, binary, 0},
+{"<sourceposition>|</sourceposition>", sourceposition, tuple, 3},
+{"<senderid>|</senderid>", senderid, binary, 3},
+{"<senderpositon>|</senderpositon>", senderpositon, tuple, 3},
 {"<sequence>|</sequence>", sequence, tuple, 2},
 {"<request>|</request>", request, binary, 0},
 {"<ftype>|</ftype>", ftype, binary, 0},
-{"<dest>|</dest>", destination, tuple, 3}
+{"<destination>|</destination>", destination, tuple, 3},
+{"<body>|</body>", body, binary, 0}
 ]).

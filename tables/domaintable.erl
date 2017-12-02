@@ -3,12 +3,41 @@
 -module(domaintable).
 -include("../include/message.hrl").
 -include("../include/domaintable.hrl").
--export([init/0]).
+-export([init/0,start/0]).
 -export([test/0]).
--export([insert_object/1,remove_object/1,calcEuclidean/2]).
+-export([insert_object/1,remove_object/1,calcEuclidean/2,selectTimedOutObjs/0]).
 
+%%% Call from the master startup and make availabe to the message handler.
+%%%Could also contact the message handler instead by just flipping receive and send.
+start() ->
+  Pid = self(),
+  %%% Register self to make availalbe to Message handler
+  register(domaintable, self()),
+  io:format("Establishing connection with Message Handler~n",[]),
+  %Make Connection here.
+  receive
+    {connection, MhPid} ->
+      %%%Give message handler back our pid
+      MhPid ! {connection,Pid},
+      handleRequests(MhPid)
+  end
+  .
+%%% Handles requests from the message handler
+handleRequests(MhPid) ->
+  receive
+    {insert_object,Object} ->
+      {_,Result} = insert_object(Object),
+      MhPid ! Result;
+    {route, Target, DontUse}->
+      Result = route(Target, DontUse),
+      MhPid ! Result
 
+  end,
+handleRequests(MhPid)
+.
 %%% init: intizalizes table on system boot
+
+
 init() ->
     application:set_env(mnesia, dir, ?DomaintableDB),   %%%Sets directory to save database in
 
@@ -26,12 +55,13 @@ init() ->
 
 %%%Test ops made by Nick%%%
 %%%Should be transfered to the testing place once described.
+
 test()->
-  %application:set_env(mnesia, dir, ?DomaintableDB),
+  application:set_env(mnesia, dir, ?DomaintableDB),
   Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
   Saturn1 = #object{id = 2, position = {100,-4, 70}, delta_pos =x},
   %insert_object(Mars1),
-  insert_object(Saturn1),
+  %insert_object(Saturn1),
   Objects = object_by_Id(1),
   [Obj|OtherObjects] = Objects,
   Marsid = Mars1#object.id,
@@ -44,11 +74,11 @@ test()->
       io:format("Read failed test~n",[])
   end,
   {_, AllObjects}= getAll(),
-  AllObjects,
-  remove_object(1),
-  Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
-  sortedSmallToTarget(Target)
+  %remove_object(1),
+  %Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
+  %sortedSmallToTarget(Target)
 
+  selectTimedOutObjs()
   .
 
 
@@ -151,3 +181,46 @@ calcEuclidean(Obj0, Obj1)->
 
   math:sqrt((X*X)+ (Y*Y) + (Z*Z))
   .
+selectTimedOutObjs()->
+  TimeNow= erlang:now(),
+  io:format("Time is~w~n",[TimeNow]),
+  {Mega, NowSeconds, Micro} = TimeNow,
+  Trans = fun()->
+    MatchHead = #object{id='$1', last_msg_t_stamp={'_','$2','_'},_='_'},
+
+    %5Mins
+    Gaurd = {'<','$2',NowSeconds-300},
+    Result='$1',
+    mnesia:select(domaintable,[{MatchHead,[Gaurd],[Result]}])
+  end,
+  mnesia:transaction(Trans).
+
+route(Target, DontUse)->
+  case Target of
+    {id, ID}->
+      Object = object_by_Id,
+      case Object of
+        []->
+          nothing_in_domain;
+        _->
+          Object
+        end;
+    {position, Pos}->
+      TargetObj = #object{position = Pos},
+      Sorted = sortedSmallToTarget(TargetObj),
+      case Sorted of
+        []->
+          nothing_in_domain;
+        _->
+          Available = Sorted --DontUse,
+          case Available of
+            []->
+              no_available;
+            _->
+              Available
+            end
+      end
+
+  end.
+
+%oldObjectCollector()->

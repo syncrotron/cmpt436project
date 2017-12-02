@@ -50,18 +50,26 @@ pass_message(Msg) when is_record(Msg, message)->
 pass_message(UnkownMsg)->
     error_logger:error_msg("Unkown Message Passed: ~p~n", [UnkownMsg]).
 
-%% Main Handler. Should not be used outside module
+%% @doc Main Handler. Should not be used outside module
 handle_cast({message, Msg}, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}) ->
     error_logger:info_msg("Recieved Message From ~p~n
                            Sequence Number ~p in ~p~n
                            Headed to ~p~n"
-                           , [Msg#message.id, element(1, Msg#message.sequence), element(2, Msg#message.sequence), Msg#message.destination]),
+                           , [Msg#message.sourceid, element(1, Msg#message.sequence), element(2, Msg#message.sequence), Msg#message.destination]),
+
+    %% Checks sequence info, and sends if entire sequence is collected
+    FileType = Msg#message.ftype,
+    if FileType =:= "RSP" ->
+        Body
+
+        true -> ok %%FUNCTION FOR SENDING TO ENCODER
+    end,
 
     %% Checks sequence info, and sends if entire sequence is collected
     {Position, Sequence} = Msg#message.sequence,
     if Sequence > 1 ->
         messagestore:add_message(Msg),
-        {Truth, MessageSequence} = messagestore:has_complete_message(Msg#message.id),
+        {Truth, MessageSequence} = messagestore:has_complete_message(Msg#message.sourceid),
         if Truth == true ->
             mass_send(MessageSequence, length(MessageSequence))
         end;
@@ -69,7 +77,7 @@ handle_cast({message, Msg}, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMa
     end,
     {noreply, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}}.
 
-mass_send(MessageSequence, SequenceNumber) -> ok.
+mass_send(MessageSequence, SequenceNumber) -> ok  %%FUNCTION FOR SENDING TO ENCODER.
 % We get compile warnings from gen_server unless we define these
 handle_call(_Call, _From, State) -> {noreply, State}.
 handle_info(_Message, Args) -> {noreply, Args}.

@@ -5,7 +5,7 @@
 -include("../include/domaintable.hrl").
 -export([init/0]).
 -export([test/0]).
--export([foo/0,insert_object/1,remove_object/1,calcEuclidean/2]).
+-export([insert_object/1,remove_object/1,calcEuclidean/2]).
 
 
 %%% init: intizalizes table on system boot
@@ -51,28 +51,6 @@ test()->
 
   .
 
-
-foo()->
-  application:set_env(mnesia, dir, ?TestDomaintableDB),
-
-  application:start(mnesia),
-  %mnesia:delete_schema()
-  mnesia:delete_table(testtable),
-
-  %ok,_ =  mnesia:create_schema([node()]),
-
-  {_, Ok} = mnesia:create_table(testtable,
-                    [{attributes, record_info(fields, object)},
-                     %You dont have to specify index in our case as mnesia uses first field of record for inde by default.
-                     %{index, [#object.id]}]).
-                     {record_name, object},
-                     {type,set}]),%for testing.
-                     %{type, bag}]).                 %%%Allows for multiple unique entries under 1 key. Managed by table handler
-  Ok.
-  %{_, DelOk} = mnesia:delete_table(domaintable),
-  %Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
-  %{_,InsertOk} = insert_object(Mars1),
-  %InsertOk.
 
 %%%%%%%%%%%%%%%
 %%% PRIVATE %%%
@@ -145,7 +123,6 @@ sortedSmallToTarget(Target)->
       sortedSmallToTarget(Objects, Target, [])
     end
   .
-
 sortedSmallToTarget(Objects,Target, List)->
   case Objects of
     []->
@@ -158,14 +135,14 @@ sortedSmallToTarget(Objects,Target, List)->
     sortedSmallToTarget(Rest, Target, List++Element)
     end
   .
+
+%%%calcEuclidean: Calculate the euclidean distance between 2 objects
+%%%Obj0 and Obj1 are object records defined in include/domaintable.hrl
+%%%returns floating point Euclidean distance
 calcEuclidean(Obj0, Obj1)->
   {X0,Y0,Z0} = Obj0#object.position,
   {X1,Y1,Z1} = Obj1#object.position,
 
-  io:format("X0 is: ~w~n", [X0]),
-  io:format("X1 is: ~w~n", [X1]),
-  io:format("Y0 is: ~w~n", [Y0]),
-  io:format("Y1 is: ~w~n", [Y1]),
   X = X1 - X0,
   Y = Y1 - Y0,
   Z = Z1-Z0,

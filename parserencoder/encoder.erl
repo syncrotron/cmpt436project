@@ -1,5 +1,6 @@
 -module(encoder).
 -include("../include/tags.hrl").
+-include("../include/message.hrl").
 -export([set_metadata/1, encode/2, send_message/2, write_message_to_file/2]).
 
 %% Record - contains the message and information for metadata.
@@ -10,7 +11,7 @@ set_metadata(Record) ->
 %% Metadata - utf-8 metadata.
 encode(Record, Metadata) ->
   io:format("Encoding message.~n",[]).
-  % Convert metadata list to binary and prepend to the message wrapped around encoded <data> tags.
+  % Convert metadata record to binary and prepend to the message wrapped around encoded <data> tags.
 
 % If we use an IO device.
 % IoDevice takes a pid, Bytes is the data we are sending.

@@ -10,6 +10,5 @@
 {"<sequence>|</sequence>", sequence, tuple, 2},
 {"<request>|</request>", request, binary, 0},
 {"<ftype>|</ftype>", ftype, binary, 0},
-{"<destination>|</destination>", destination, tuple, 3},
-{"<body>|</body>", body, binary, 0}
+{"<destination>|</destination>", destination, tuple, 3}
 ]).

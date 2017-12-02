@@ -1,29 +1,24 @@
 %%%Created by Sam Horovatin, 11185403
 
 -module(messagehandler).
-
+-include("../include/message.hrl").
 -behaviour(gen_server).
 % interface calls
--export([start/0, stop/0]).
+-export([start/1, stop/0, pass_message/1]).
 
 % gen_server callbacks
--export([init/1,
-         handle_call/3,
-         handle_cast/2,
-         handle_info/2,
-         terminate/2,
-         code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, terminate/2, handle_info/2, code_change/3]).
 
 
-
-%% Server interface
-%%====================================================================
+%% ====================================================================
+%% Server Interface
+%% ====================================================================
 %% Booting server (and linking to it)
 %% Args {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}
+
 start(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
-%%Stops the server
 stop() ->
     gen_server:cast(?MODULE, shutdown).
 
@@ -45,46 +40,38 @@ get_timestamp() ->
     {Mega,Sec,Micro} = erlang:now(),
     (Mega*1000000+Sec)*1000000+Micro.
 
-%%Interface
-%%====================================================================
+%% ====================================================================
+%% Server Functions
+%% ====================================================================
 
 pass_message(Msg) when is_record(Msg, message)->
-    gen_server:cast(?MODULE, {message, Msg}).
+    gen_server:cast(?MODULE, {message, Msg});
 
 pass_message(UnkownMsg)->
-    error_logger:info_msg("Unkown Message Passed: ~p~n", [UnkownMsg]).
+    error_logger:error_msg("Unkown Message Passed: ~p~n", [UnkownMsg]).
 
-%% Synchronous, possible return values
-% {reply,Reply,NewState}
-% {reply,Reply,NewState,Timeout}
-% {reply,Reply,NewState,hibernate}
-% {noreply,NewState}
-% {noreply,NewState,Timeout}
-% {noreply,NewState,hibernate}
-% {stop,Reason,Reply,NewState}
-% {stop,Reason,NewState}
-handle_call(Message, From, State) ->
-    io:format("Generic call handler: '~p' from '~p' while in '~p'~n",[Message, From, State]),
-    {reply, ok, State}.
+%% Main Handler. Should not be used outside module
+handle_cast({message, Msg}, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}) ->
+    error_logger:info_msg("Recieved Message From ~p~n
+                           Sequence Number ~p in ~p~n
+                           Headed to ~p~n"
+                           , [Msg#message.id, element(1, Msg#message.sequence), element(2, Msg#message.sequence), Msg#message.destination]),
 
-%% Asynchronous message manager
-handle_cast({message, Msg}, Args) ->
-    io:format("Generic cast handler: *shutdown* while in '~p'~n",[State]),
-    {noreply, Args};
+    %% Checks sequence info, and sends if entire sequence is collected
+    {Position, Sequence} = Msg#message.sequence,
+    if Sequence > 1 ->
+        messagestore:add_message(Msg),
+        {Truth, MessageSequence} = messagestore:has_complete_message(Msg#message.id),
+        if Truth == true ->
+            mass_send(MessageSequence, length(MessageSequence))
+        end;
+        true -> ok %%FUNCTION FOR SENDING TO ENCODER
+    end,
+    {noreply, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}}.
 
-%% Informative calls
-% {noreply,NewState}
-% {noreply,NewState,Timeout}
-% {noreply,NewState,hibernate}
-% {stop,Reason,NewState}
-handle_info(_Message, _Server) ->
-    io:format("Generic info handler: '~p' '~p'~n",[_Message, _Server]),
-    {noreply, _Server}.
-
-%% Server termination
-terminate(_Reason, _Server) ->
-    io:format("Terminating...~n").
-
-
-%% Code change
-code_change(_OldVersion, _Server, _Extra) -> {ok, _Server}.
+mass_send(MessageSequence, SequenceNumber) -> ok.
+% We get compile warnings from gen_server unless we define these
+handle_call(_Call, _From, State) -> {noreply, State}.
+handle_info(_Message, Args) -> {noreply, Args}.
+terminate(_Reason, _Args) -> ok.
+code_change(_OldVersion, Args, _Extra) -> {ok, Args}.

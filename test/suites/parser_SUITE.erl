@@ -8,9 +8,11 @@ all() ->
   [parse_valid_test].
 
 parse_valid_test(_Config) ->
-  file:write_file("valid_file", unicode:characters_to_binary("<sourceid>" ++ <<4:8, 0:56>> ++ "<sourceid>" ++
+  SourceIDList = unicode:characters_to_list(<<4:8, 0:56>>),
+  SenderIDList = unicode:characters_to_list(<<3:8, 0:56>>),
+  file:write_file("valid_file", unicode:characters_to_binary("<sourceid>" ++ SourceIDList ++ "<sourceid>" ++
                                                               "<sourceposition>{7,1,0}</sourceposition>" ++
-                                                              "<senderid>" ++ <<3:8, 0:56>> ++ "</senderid>" ++
+                                                              "<senderid>" ++ SenderIDList ++ "</senderid>" ++
                                                               "<senderposition>{5,-9,0}</senderposition>" ++
                                                               "<sequence>{1,1}</sequence>" ++
                                                               "<request>1</request>" ++

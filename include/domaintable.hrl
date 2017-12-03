@@ -10,5 +10,5 @@
 %%%      last_msg_t_stamp: a local time stamp of last update to object row data
 -record(object, {id, position, delta_pos, last_msg_t_stamp}).
 
--define(DomaintableDB, "../domaindb").
+-define(DomaintableDB, "domaindb").
 -define(TestDomaintableDB, "../test/testdomaindb").

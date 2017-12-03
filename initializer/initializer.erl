@@ -10,10 +10,22 @@ init(_Args) ->
     SupFlags = #{strategy => one_for_one,
                  intensity => 1,
                  period => 5},
+
+
     ChildSpecs = [#{id => messagestore,
                     start => {messagestore, start, []},
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker,
-                    modules => [messagestore]}],
+                    modules => [messagestore]},
+
+                  #{id => messagehandler,
+                    start => {messagehandler, start, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker,
+                    modules => [messagehandler]}],
+
+    %io:fwrite(supervisor:which_children(initializer)),
+
     {ok, {SupFlags, ChildSpecs}}.

@@ -17,6 +17,7 @@
 %% Args {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}
 
 start(Args) ->
+    io:fwrite("Starting message handler~n"),
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
 stop() ->
@@ -60,13 +61,13 @@ handle_cast({message, Msg}, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMa
     %% Checks file type and looks for resend requests or recieve confrimations
     FileType = Msg#message.ftype,
     if FileType =:= "RSEND" ->
-        RepeatMsg = get_message(Msg#message.sourceid),
+        RepeatMsg = messagestore:get_message(Msg#message.sourceid),
         ok; %%FUNCTION FOR SENDING TO ENCODER
-        FileType =:= "OK" ->
-        flag_message_for_deletion(Msg#message.sourceid),
-        ok %%FUNCTION FOR SENDING TO ENCODE
+       FileType =:= "OK" ->
+        messagestore:flag_message_for_deletion(Msg#message.sourceid),
+        ok; %%FUNCTION FOR SENDING TO ENCODE
 
-        true ->
+       true ->
             %% Checks sequence info, and sends if entire sequence is collected
             if element(2, Msg#message.sequence) > 1 ->
                 messagestore:add_message(Msg),
@@ -75,14 +76,14 @@ handle_cast({message, Msg}, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMa
                     mass_send(MessageSequence, length(MessageSequence))
                 end;
                 true -> ok %%FUNCTION FOR SENDING TO ENCODER
-            end,
+            end
 
     end,
 
 
     {noreply, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}}.
 
-mass_send(MessageSequence, SequenceNumber) -> ok  %%FUNCTION FOR SENDING TO ENCODER.
+mass_send(MessageSequence, SequenceNumber) -> ok.  %%FUNCTION FOR SENDING TO ENCODER.
 
 
 % We get compile warnings from gen_server unless we define these

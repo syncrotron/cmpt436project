@@ -1,2 +1,2 @@
-{["src/*", "test/*" ], [{i,"include"}, {outdir, "ebin"}]}.
+{["*/*"], [{outdir, "ebin"}]}.
 {["test/suites/*"], [{i,"include"}, {outdir, "test/suites"}]}.

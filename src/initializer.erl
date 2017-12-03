@@ -20,11 +20,18 @@ init(_Args) ->
                     modules => [messagestore]},
 
                   #{id => messagehandler,
-                    start => {messagehandler, start, []},
+                    start => {messagehandler, start, [{1, 2, 3}]},
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker,
-                    modules => [messagehandler]}],
+                    modules => [messagehandler]}, 
+                    
+                  #{id => domaintable,
+                    start => {domaintable, start, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker,
+                    modules => [domaintable]}],
 
     %io:fwrite(supervisor:which_children(initializer)),
 

@@ -83,10 +83,10 @@ test()->
   io:format("ALlobjects: ~w~n",[AllObjects]),
   %remove_object(1),
   Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
-  sortedSmallToTarget(Target)
+  sortedSmallToTarget(Target),
 
-  %{_,OldObjs} = selectTimedOutObjs(),
-  %io:format("OldObjss: ~w~n",[OldObjs]),
+  {_,OldObjs} = selectTimedOutObjs(),
+  io:format("OldObjss: ~w~n",[OldObjs])
   %removeEach(OldObjs),
   %getAll()
 
@@ -197,14 +197,15 @@ calcEuclidean(Obj0, Obj1)->
 selectTimedOutObjs()->
   TimeNow= erlang:now(),
   io:format("Time is~w~n",[TimeNow]),
-  {Mega, NowSeconds, Micro} = TimeNow,
+  {NowMega, NowSeconds, NowMicro} = TimeNow,
   Trans = fun()->
-    MatchHead = #object{id='$1', last_msg_t_stamp={'_','$2','_'},_='_'},
+    MatchHead = #object{id='$1', last_msg_t_stamp={'$2','$3','_'},_='_'},
 
-    %5Mins
-    Gaurd = {'<','$2',NowSeconds-300},
+    %5Mins is 300 seconds. So search for stuff that has lasted for longer than 5 minutes ago. 
+    Gaurd = [{'=<','$2',NowMega},{'and',{'>','$3',NowSeconds-300}}],
     Result='$1',
-    mnesia:select(domaintable,[{MatchHead,[Gaurd],[Result]}])
+    mnesia:select(domaintable,[{MatchHead,Gaurd,[Result]}])
+    %MS = ets:fun2ms(fun(#object{id=ID,last_msg_t_stamp={Mega,Seconds_}}))
   end,
   mnesia:transaction(Trans).
 

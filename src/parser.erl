@@ -104,7 +104,7 @@ decode(ValidData, Data) ->
 
 %%% Recursively performs function on each tag as defined by ?TAG list.
 %%% Once done with all tags, add Data to record and send to message handler.
-parse(MetaData, Data, Record,[]) ->
+parse(_, Data, Record,[]) ->
   UpdatedRecord = Record#message{body = Data},
   send_msghandler(UpdatedRecord);
 parse(MetaData, Data, Record, [Head | Tail]) ->

@@ -22,7 +22,7 @@ start() ->
       handleRequests(MhPid)
   end
   .
-%%% Handles requests from the message handler
+%% @doc Handles requests from the message handler
 handleRequests(MhPid) ->
   receive
     {insert_object,Object} ->
@@ -33,8 +33,8 @@ handleRequests(MhPid) ->
       MhPid ! Result
 
   end,
-handleRequests(MhPid)
-.
+  handleRequests(MhPid)
+  .
 %%% init: intizalizes table on system boot
 
 
@@ -50,8 +50,7 @@ init() ->
                        {record_name, object},
 
                        {disc_copies, [node()]},       %%%Stores a copies on RAM and on disc
-                       {type,set}]).%for testing.
-                       %{type, bag}]).                 %%%Allows for multiple unique entries under 1 key. Managed by table handler
+                       {type,set}]).
 
 %%%Test ops made by Nick%%%
 %%%Should be transfered to the testing place once described.

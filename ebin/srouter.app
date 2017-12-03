@@ -2,7 +2,7 @@
     [{description, "Internet traffic router designed for high latency enviroments"},
     {vsn, "0.1.0"},
         {modules, [ %%%Update with all modules
-        domaintable_SUITE.erl
+            encoder, messagehandler, messagestore, parser,domaintable
         ]},
     {applications, [stdlib, kernel, mnesia]}
 ]}.

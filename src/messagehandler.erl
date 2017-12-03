@@ -2,6 +2,7 @@
 
 -module(messagehandler).
 -include("../include/message.hrl").
+-include("../include/domaintable.hrl").
 -behaviour(gen_server).
 % interface calls
 -export([start/1, stop/0, pass_message/1]).
@@ -22,18 +23,17 @@ start(Args) ->
 stop() ->
     gen_server:cast(?MODULE, shutdown).
 
-init({PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}) ->
+init({PidOfDomainTable, PidOfEncoderMaster}) ->
     io:format("Initializing Satellite Message Handler...~n"),
     io:format("Run Paramaters Given Are:~n"),
     io:format("Pid Of Domain Table:~s~n", PidOfDomainTable),
-    io:format("Pid Of Storage Table:~s~n", PidOfStorageTable),
     io:format("Pid Of Encoder Master:~s~n", PidOfEncoderMaster),
     io:format("~n..........................................~n"),
     {Mega,Sec,Micro} = get_timestamp(),
     File = Mega++Sec++Micro++".txt",
     file:write_file("/doc/runlogs/" ++ File , ""),
     error_logger:logfile({open, "/doc/runlogs/" ++ File}),
-    {ok, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}}.
+    {ok, {PidOfDomainTable, PidOfEncoderMaster}}.
 
 %% @doc Internal timestamp generator for error error_logger
 get_timestamp() ->
@@ -51,38 +51,57 @@ pass_message(UnkownMsg)->
     error_logger:error_msg("Unkown Message Passed: ~p~n", [UnkownMsg]).
 
 %% @doc Main Handler. Should not be used outside module
-handle_cast({message, Msg}, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}) ->
+handle_cast({message, Msg}, {PidOfDomainTable, PidOfEncoderMaster}) ->
     error_logger:info_msg("Recieved Message From ~p~n
                            Sequence Number ~p in ~p~n
                            Headed to ~p~n"
                            , [Msg#message.sourceid, element(1, Msg#message.sequence), element(2, Msg#message.sequence), Msg#message.destination]),
 
+    %% updates domain table entry with sender info
+    MsgObject = #object{id=Msg#message.senderid,
+                        position=Msg#message.senderposition,
+                        delta_pos= x,
+                        last_msg_t_stamp=get_timestamp()},
+    PidOfDomainTable ! {insert_object, MsgObject},
+
     %% Checks file type and looks for resend requests or recieve confrimations
     FileType = Msg#message.ftype,
     if FileType =:= "RSEND" ->
-        RepeatMsg = get_message(Msg#message.sourceid),
-        ok; %%FUNCTION FOR SENDING TO ENCODER
-        FileType =:= "OK" ->
-        flag_message_for_deletion(Msg#message.sourceid),
-        ok %%FUNCTION FOR SENDING TO ENCODE
+         RepeatMsg = messagestore:get_message(Msg#message.sourceid),
+         PidOfDomainTable ! {route, {position, Msg#message.senderposition}, []},
+         PidOfEncoderMaster ! {Msg};
 
-        true ->
+       FileType =:= "OK" ->
+         messagestore:flag_message_for_deletion(Msg#message.sourceid);
+
+       FileType =:= "PING" ->
+         ok;
+
+       true ->
             %% Checks sequence info, and sends if entire sequence is collected
             if element(2, Msg#message.sequence) > 1 ->
-                messagestore:add_message(Msg),
-                {Truth, MessageSequence} = messagestore:has_complete_message(Msg#message.sourceid),
-                if Truth == true ->
-                    mass_send(MessageSequence, length(MessageSequence))
-                end;
-                true -> ok %%FUNCTION FOR SENDING TO ENCODER
-            end,
+                  messagestore:add_message(Msg),
+                  {Truth, MessageSequence} = messagestore:has_complete_message(Msg#message.sourceid, Msg#message.request),
+                  if Truth == true ->
+                    OkMsg = #message{sourceid = Msg#message.sourceid,
+                                        sourceposition = Msg#message.sourceposition,
+                                        senderid = <<>>,
+                                        senderposition = {0,0,0},
+                                        sequence = {0,0},
+                                        request = Msg#message.request,
+                                        ftype = <<"OK">>,
+                                        destination = {0,0,0},
+                                        body = <<>>},
+                    PidOfDomainTable ! {route, {position, Msg#message.destination}, []},
+                    PidOfEncoderMaster ! {OkMsg}
+                  end;
+               true ->
+                 PidOfDomainTable ! {route, {position, Msg#message.senderposition}, []},
+                 PidOfEncoderMaster ! {Msg}
+            end
 
     end,
-
-
-    {noreply, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}}.
-
-mass_send(MessageSequence, SequenceNumber) -> ok  %%FUNCTION FOR SENDING TO ENCODER.
+    {noreply, {PidOfDomainTable, PidOfEncoderMaster}}.
 
 
 % We get compile warnings from gen_server unless we define these

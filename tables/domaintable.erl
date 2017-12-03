@@ -37,7 +37,7 @@ handleRequests() ->
 
 writeSendToFile(ObjId)->
   StrId = integer_to_list(ObjId),
-  Directory = "../sendMessages"++StrId++"/",
+  Directory = "sendMessages"++StrId++"/",
   filelib:ensure_dir(Directory),
   FilePath = Directory++StrId++".sendTo",
   file:write_file(FilePath, io_libe:fwrite("~p.\n",[StrId]))

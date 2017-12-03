@@ -5,36 +5,33 @@
 -include("../include/domaintable.hrl").
 -behaviour(gen_server).
 % interface calls
--export([start/1, stop/0, pass_message/1]).
+-export([start/0, stop/0, pass_message/1]).
 
 % gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, terminate/2, handle_info/2, code_change/3]).
+-export([init/0, handle_call/3, handle_cast/2, terminate/2, handle_info/2, code_change/3]).
 
 
 %% ====================================================================
 %% Server Interface
 %% ====================================================================
 %% Booting server (and linking to it)
-%% Args {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}
 
-start(Args) ->
-    io:fwrite("Starting message handler~n"),
-    gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
+start() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, ?MODULE, []).
 
 stop() ->
     gen_server:cast(?MODULE, shutdown).
 
-init({PidOfDomainTable, PidOfEncoderMaster}) ->
+init() ->
     io:format("Initializing Satellite Message Handler...~n"),
-    io:format("Run Paramaters Given Are:~n"),
-    io:format("Pid Of Domain Table:~s~n", PidOfDomainTable),
-    io:format("Pid Of Encoder Master:~s~n", PidOfEncoderMaster),
+    io:format("Pid Of Domain Table: ~s~n", pidOfdomaintable),
+    io:format("Pid Of Encoder Master: ~s~n", pidofencodermaster),
     io:format("~n..........................................~n"),
     {Mega,Sec,Micro} = get_timestamp(),
     File = Mega++Sec++Micro++".txt",
     file:write_file("/doc/runlogs/" ++ File , ""),
     error_logger:logfile({open, "/doc/runlogs/" ++ File}),
-    {ok, {PidOfDomainTable, PidOfEncoderMaster}}.
+    {ok, ?MODULE}.
 
 %% @doc Internal timestamp generator for error error_logger
 get_timestamp() ->
@@ -52,7 +49,7 @@ pass_message(UnkownMsg)->
     error_logger:error_msg("Unkown Message Passed: ~p~n", [UnkownMsg]).
 
 %% @doc Main Handler. Should not be used outside module
-handle_cast({message, Msg}, {PidOfDomainTable, PidOfEncoderMaster}) ->
+handle_cast({message, Msg}, _) ->
     error_logger:info_msg("Recieved Message From ~p~n
                            Sequence Number ~p in ~p~n
                            Headed to ~p~n"
@@ -63,14 +60,14 @@ handle_cast({message, Msg}, {PidOfDomainTable, PidOfEncoderMaster}) ->
                         position=Msg#message.senderposition,
                         delta_pos= x,
                         last_msg_t_stamp=get_timestamp()},
-    PidOfDomainTable ! {insert_object, MsgObject},
+    pidOfdomaintable ! {insert_object, MsgObject},
 
     %% Checks file type and looks for resend requests or recieve confrimations
     FileType = Msg#message.ftype,
     if FileType =:= "RSEND" ->
          RepeatMsg = messagestore:get_message(Msg#message.sourceid),
-         PidOfDomainTable ! {route, {position, Msg#message.senderposition}, []},
-         PidOfEncoderMaster ! {Msg};
+         pidOfdomaintable ! {route, {position, Msg#message.senderposition}, []},
+         pidofencodermaster ! {Msg};
 
        FileType =:= "OK" ->
          messagestore:flag_message_for_deletion(Msg#message.sourceid);
@@ -93,16 +90,16 @@ handle_cast({message, Msg}, {PidOfDomainTable, PidOfEncoderMaster}) ->
                                         ftype = <<"OK">>,
                                         destination = {0,0,0},
                                         body = <<>>},
-                    PidOfDomainTable ! {route, {position, Msg#message.destination}, []},
-                    PidOfEncoderMaster ! {OkMsg}
+                    pidOfdomaintable ! {route, {position, Msg#message.destination}, []},
+                    pidofencodermaster ! {OkMsg}
                   end;
                true ->
-                 PidOfDomainTable ! {route, {position, Msg#message.senderposition}, []},
-                 PidOfEncoderMaster ! {Msg}
+                 pidOfdomaintable ! {route, {position, Msg#message.senderposition}, []},
+                 pidofencodermaster ! {Msg}
             end
 
     end,
-    {noreply, {PidOfDomainTable, PidOfEncoderMaster}}.
+    {noreply, ?MODULE}.
 
 
 % We get compile warnings from gen_server unless we define these

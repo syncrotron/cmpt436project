@@ -10,7 +10,7 @@
 
 %% @doc Start the proccess which deal with the Messages Storage
 start() -> 
-    io:fwrite("Started"),
+    io:fwrite("Started message store"),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc Internal function (should not be used outisde of module). See start() for outisde ussage
@@ -20,12 +20,12 @@ init([]) ->
 
 %% @doc Internal function (should not be used outisde of module). See add_message() for outisde ussage
 handle_cast({add_message, Message}, Store) -> 
-    NewStore = case dict:find(Message#message.id, Store) of
+    NewStore = case dict:find(Message#message.sourceid, Store) of
         {ok, Previous} -> 
             UpdatedItem = Previous#item{message_sequence=[Message] ++ Previous#item.message_sequence},
-            dict:store(Message#message.id, UpdatedItem, Store);
+            dict:store(Message#message.sourceid, UpdatedItem, Store);
         error -> 
-            dict:store(Message#message.id, #item{message_sequence=[Message]}, Store)
+            dict:store(Message#message.sourceid, #item{message_sequence=[Message]}, Store)
     end,
     {noreply, NewStore};
 
@@ -90,6 +90,6 @@ has_complete_message(Id) ->
     gen_server:call(messagestore, {has_complete_message, Id}).
 
 
-terminate(_Reason, _State) -> io:fwrite("Stopped").
+terminate(_Reason, _State) -> io:fwrite("Stopped message store").
 handle_info(_Message, State) -> {noreply, State}.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.

@@ -35,7 +35,7 @@ init({PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}) ->
     error_logger:logfile({open, "/doc/runlogs/" ++ File}),
     {ok, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}}.
 
-
+%% @doc Internal timestamp generator for error error_logger
 get_timestamp() ->
     {Mega,Sec,Micro} = erlang:now(),
     (Mega*1000000+Sec)*1000000+Micro.
@@ -57,27 +57,34 @@ handle_cast({message, Msg}, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMa
                            Headed to ~p~n"
                            , [Msg#message.sourceid, element(1, Msg#message.sequence), element(2, Msg#message.sequence), Msg#message.destination]),
 
-    %% Checks sequence info, and sends if entire sequence is collected
+    %% Checks file type and looks for resend requests or recieve confrimations
     FileType = Msg#message.ftype,
-    if FileType =:= "RSP" ->
-        Body
+    if FileType =:= "RSEND" ->
+        RepeatMsg = get_message(Msg#message.sourceid),
+        ok; %%FUNCTION FOR SENDING TO ENCODER
+        FileType =:= "OK" ->
+        flag_message_for_deletion(Msg#message.sourceid),
+        ok %%FUNCTION FOR SENDING TO ENCODE
 
-        true -> ok %%FUNCTION FOR SENDING TO ENCODER
+        true ->
+            %% Checks sequence info, and sends if entire sequence is collected
+            if element(2, Msg#message.sequence) > 1 ->
+                messagestore:add_message(Msg),
+                {Truth, MessageSequence} = messagestore:has_complete_message(Msg#message.sourceid),
+                if Truth == true ->
+                    mass_send(MessageSequence, length(MessageSequence))
+                end;
+                true -> ok %%FUNCTION FOR SENDING TO ENCODER
+            end,
+
     end,
 
-    %% Checks sequence info, and sends if entire sequence is collected
-    {Position, Sequence} = Msg#message.sequence,
-    if Sequence > 1 ->
-        messagestore:add_message(Msg),
-        {Truth, MessageSequence} = messagestore:has_complete_message(Msg#message.sourceid),
-        if Truth == true ->
-            mass_send(MessageSequence, length(MessageSequence))
-        end;
-        true -> ok %%FUNCTION FOR SENDING TO ENCODER
-    end,
+
     {noreply, {PidOfDomainTable, PidOfStorageTable, PidOfEncoderMaster}}.
 
 mass_send(MessageSequence, SequenceNumber) -> ok  %%FUNCTION FOR SENDING TO ENCODER.
+
+
 % We get compile warnings from gen_server unless we define these
 handle_call(_Call, _From, State) -> {noreply, State}.
 handle_info(_Message, Args) -> {noreply, Args}.

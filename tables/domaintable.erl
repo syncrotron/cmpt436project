@@ -74,11 +74,16 @@ test()->
       io:format("Read failed test~n",[])
   end,
   {_, AllObjects}= getAll(),
+  io:format("ALlobjects: ~w~n",[AllObjects]),
   %remove_object(1),
   %Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
   %sortedSmallToTarget(Target)
 
-  selectTimedOutObjs()
+  {_,OldObjs} = selectTimedOutObjs(),
+  io:format("OldObjss: ~w~n",[OldObjs]),
+  removeEach(OldObjs),
+  getAll()
+
   .
 
 
@@ -181,6 +186,8 @@ calcEuclidean(Obj0, Obj1)->
 
   math:sqrt((X*X)+ (Y*Y) + (Z*Z))
   .
+
+%%%Select the objects that havent talked to me in a while -- 5mins right now
 selectTimedOutObjs()->
   TimeNow= erlang:now(),
   io:format("Time is~w~n",[TimeNow]),
@@ -194,6 +201,15 @@ selectTimedOutObjs()->
     mnesia:select(domaintable,[{MatchHead,[Gaurd],[Result]}])
   end,
   mnesia:transaction(Trans).
+
+removeEach([])->
+  ok;
+
+removeEach([ObjId|TheRest]) ->
+  remove_object(ObjId),
+  removeEach(TheRest)
+  .
+
 
 route(Target, DontUse)->
   case Target of
@@ -223,4 +239,9 @@ route(Target, DontUse)->
 
   end.
 
-%oldObjectCollector()->
+oldObjectRemover()->
+  {_,OldObjs} = selectTimedOutObjs(),
+  removeEach(OldObjs),
+  timer:sleep(timer:minutes(5)),
+  oldObjectRemover()
+  .

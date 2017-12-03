@@ -37,7 +37,7 @@ handleRequests() ->
 
 writeSendToFile(ObjId)->
   StrId = integer_to_list(ObjId),
-  Directory = "../sendMessages"++StrId++"/",
+  Directory = "sendMessages"++StrId++"/",
   filelib:ensure_dir(Directory),
   FilePath = Directory++StrId++".sendTo",
   file:write_file(FilePath, io_libe:fwrite("~p.\n",[StrId]))
@@ -46,7 +46,12 @@ writeSendToFile(ObjId)->
 
 %%% init: intizalizes table on system boot
 init() ->
+  case filelib:is_dir(?DomaintableDB) of
+    true->
+      ok;
+    false->
     application:set_env(mnesia, dir, ?DomaintableDB),   %%%Sets directory to save database in
+
 
     ok,_ =  mnesia:create_schema([node()]),
     application:start(mnesia),
@@ -57,8 +62,8 @@ init() ->
                        {record_name, object},
 
                        {disc_copies, [node()]},       %%%Stores a copies on RAM and on disc
-                       {type,set}]).
-
+                       {type,set}])
+    end.
 %%%Test ops made by Nick%%%
 %%%Should be transfered to the testing place once described.
 

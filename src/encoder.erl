@@ -22,7 +22,7 @@ set_metadata(Record, [Head|Tail], Metadata) ->
   FieldName = element(2, Head),
   Data = get_field(FieldName, Record),
   Result = io_lib:format("~p",[Data]),
-  StringData = lists:flatten(Result),      %convert Data to utf-8
+  StringData = lists:flatten(Result),      % convert Data to utf-8
   StringFieldName = atom_to_list(FieldName),
   AppendMetaData = Metadata ++ "<" ++ StringFieldName ++ ">" ++ StringData ++ "</" ++ StringFieldName ++ ">",
   set_metadata(Record, Tail, AppendMetaData).

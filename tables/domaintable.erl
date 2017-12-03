@@ -39,7 +39,7 @@ handleRequests() ->
 
 writeSendToFile(ObjId)->
   StrId = integer_to_list(ObjId),
-  Directory = "../sendMessages"++StrId++"/",
+  Directory = "sendMessages"++StrId++"/",
   filelib:ensure_dir(Directory),
   FilePath = Directory++StrId++".sendTo",
   file:write_file(FilePath, io_libe:fwrite("~p.\n",[StrId]))
@@ -48,7 +48,12 @@ writeSendToFile(ObjId)->
 
 %%% init: intizalizes table on system boot
 init() ->
+  case filelib:is_dir(?DomaintableDB) of
+    true->
+      ok;
+    false->
     application:set_env(mnesia, dir, ?DomaintableDB),   %%%Sets directory to save database in
+
 
     ok,_ =  mnesia:create_schema([node()]),
     application:start(mnesia),
@@ -59,8 +64,8 @@ init() ->
                        {record_name, object},
 
                        {disc_copies, [node()]},       %%%Stores a copies on RAM and on disc
-                       {type,set}]).
-
+                       {type,set}])
+    end.
 %%%Test ops made by Nick%%%
 %%%Should be transfered to the testing place once described.
 
@@ -68,8 +73,8 @@ test()->
   application:set_env(mnesia, dir, ?DomaintableDB),
   Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
   Saturn1 = #object{id = 2, position = {100,-4, 70}, delta_pos =x},
-  insert_object(Mars1),
-  insert_object(Saturn1),
+  %insert_object(Mars1),
+  %insert_object(Saturn1),
   Objects = object_by_Id(1),
   [Obj|OtherObjects] = Objects,
   Marsid = Mars1#object.id,
@@ -85,10 +90,10 @@ test()->
   io:format("ALlobjects: ~w~n",[AllObjects]),
   %remove_object(1),
   Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
-  sortedSmallToTarget(Target)
+  sortedSmallToTarget(Target),
 
-  %{_,OldObjs} = selectTimedOutObjs(),
-  %io:format("OldObjss: ~w~n",[OldObjs]),
+  {_,OldObjs} = selectTimedOutObjs(),
+  io:format("OldObjss: ~w~n",[OldObjs])
   %removeEach(OldObjs),
   %getAll()
 
@@ -199,14 +204,15 @@ calcEuclidean(Obj0, Obj1)->
 selectTimedOutObjs()->
   TimeNow= erlang:now(),
   io:format("Time is~w~n",[TimeNow]),
-  {Mega, NowSeconds, Micro} = TimeNow,
+  {NowMega, NowSeconds, NowMicro} = TimeNow,
   Trans = fun()->
-    MatchHead = #object{id='$1', last_msg_t_stamp={'_','$2','_'},_='_'},
+    MatchHead = #object{id='$1', last_msg_t_stamp={'$2','$3','_'},_='_'},
 
-    %5Mins
-    Gaurd = {'<','$2',NowSeconds-300},
+    %5Mins is 300 seconds. So search for stuff that has lasted for longer than 5 minutes ago.
+    Gaurd = [{'=<','$2',NowMega},{'or',{'<','$3',NowSeconds-300}}],
     Result='$1',
-    mnesia:select(domaintable,[{MatchHead,[Gaurd],[Result]}])
+    mnesia:select(domaintable,[{MatchHead,Gaurd,[Result]}])
+    %MS = ets:fun2ms(fun(#object{id=ID,last_msg_t_stamp={Mega,Seconds_}}))
   end,
   mnesia:transaction(Trans).
 

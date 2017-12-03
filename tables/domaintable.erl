@@ -6,38 +6,45 @@
 -export([init/0,start/0]).
 -export([test/0]).
 -export([insert_object/1,remove_object/1,calcEuclidean/2,selectTimedOutObjs/0]).
+-export([handleRequests/0,oldObjectRemover/0]).
 
 %%% Call from the master startup and make availabe to the message handler.
 %%%Could also contact the message handler instead by just flipping receive and send.
 start() ->
   Pid = self(),
   %%% Register self to make availalbe to Message handler
-  register(domaintable, self()),
   io:format("Establishing connection with Message Handler~n",[]),
-  %Make Connection here.
-  receive
-    {connection, MhPid} ->
-      %%%Give message handler back our pid
-      MhPid ! {connection,Pid},
-      handleRequests(MhPid)
-  end
+  HRPid = spawn(domaintable,handleRequests,[]),
+  spawn(domaintable,oldObjectRemover,[]),
+  %return HandleRequest pid
+  HRPid
   .
 %% @doc Handles requests from the message handler
-handleRequests(MhPid) ->
+handleRequests() ->
   receive
     {insert_object,Object} ->
-      {_,Result} = insert_object(Object),
-      MhPid ! Result;
+      insert_object(Object);
+
     {route, Target, DontUse}->
       Result = route(Target, DontUse),
-      MhPid ! Result
+      writeSendToFile(Result)
+
+      %MhPid ! Result
 
   end,
-  handleRequests(MhPid)
+  handleRequests()
   .
+
+writeSendToFile(ObjId)->
+  StrId = integer_to_list(ObjId),
+  Directory = "../sendMessages"++StrId++"/",
+  filelib:ensure_dir(Directory),
+  FilePath = Directory++StrId++".sendTo",
+  file:write_file(FilePath, io_libe:fwrite("~p.\n",[StrId]))
+
+  .
+
 %%% init: intizalizes table on system boot
-
-
 init() ->
     application:set_env(mnesia, dir, ?DomaintableDB),   %%%Sets directory to save database in
 
@@ -59,8 +66,8 @@ test()->
   application:set_env(mnesia, dir, ?DomaintableDB),
   Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
   Saturn1 = #object{id = 2, position = {100,-4, 70}, delta_pos =x},
-  %insert_object(Mars1),
-  %insert_object(Saturn1),
+  insert_object(Mars1),
+  insert_object(Saturn1),
   Objects = object_by_Id(1),
   [Obj|OtherObjects] = Objects,
   Marsid = Mars1#object.id,
@@ -75,13 +82,13 @@ test()->
   {_, AllObjects}= getAll(),
   io:format("ALlobjects: ~w~n",[AllObjects]),
   %remove_object(1),
-  %Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
-  %sortedSmallToTarget(Target)
+  Target =  #object{id = 10, position ={200,30,18}, delta_pos = x},
+  sortedSmallToTarget(Target)
 
-  {_,OldObjs} = selectTimedOutObjs(),
-  io:format("OldObjss: ~w~n",[OldObjs]),
-  removeEach(OldObjs),
-  getAll()
+  %{_,OldObjs} = selectTimedOutObjs(),
+  %io:format("OldObjss: ~w~n",[OldObjs]),
+  %removeEach(OldObjs),
+  %getAll()
 
   .
 
@@ -225,14 +232,21 @@ route(Target, DontUse)->
       Sorted = sortedSmallToTarget(TargetObj),
       case Sorted of
         []->
-          nothing_in_domain;
+          -1;
         _->
           Available = Sorted --DontUse,
           case Available of
             []->
-              no_available;
+              %Try first again
+              [SendTo|TheRest] = Sorted,
+              {_, Obj} = SendTo,
+              {_,Id,_,_,_} = Obj,
+              Id;
             _->
-              Available
+              [SendTo|TheRest] = Available,
+              {_, Obj} = SendTo,
+              {_,Id,_,_,_} = Obj,
+              Id
             end
       end
 

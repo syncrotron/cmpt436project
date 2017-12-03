@@ -66,8 +66,8 @@ test()->
   application:set_env(mnesia, dir, ?DomaintableDB),
   Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
   Saturn1 = #object{id = 2, position = {100,-4, 70}, delta_pos =x},
-  insert_object(Mars1),
-  insert_object(Saturn1),
+  %insert_object(Mars1),
+  %insert_object(Saturn1),
   Objects = object_by_Id(1),
   [Obj|OtherObjects] = Objects,
   Marsid = Mars1#object.id,
@@ -201,8 +201,8 @@ selectTimedOutObjs()->
   Trans = fun()->
     MatchHead = #object{id='$1', last_msg_t_stamp={'$2','$3','_'},_='_'},
 
-    %5Mins is 300 seconds. So search for stuff that has lasted for longer than 5 minutes ago. 
-    Gaurd = [{'=<','$2',NowMega},{'and',{'>','$3',NowSeconds-300}}],
+    %5Mins is 300 seconds. So search for stuff that has lasted for longer than 5 minutes ago.
+    Gaurd = [{'=<','$2',NowMega},{'or',{'<','$3',NowSeconds-300}}],
     Result='$1',
     mnesia:select(domaintable,[{MatchHead,Gaurd,[Result]}])
     %MS = ets:fun2ms(fun(#object{id=ID,last_msg_t_stamp={Mega,Seconds_}}))

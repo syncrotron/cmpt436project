@@ -15,6 +15,8 @@ start() ->
 %% [Head|Tail] - List of tags/record fields defined
 %% Metadata - list of utf-8.
 set_metadata(Record, [], Metadata) ->
+  register(pidofencodermaster, self()),
+
   AppendMetaData = Metadata ++ "</metadata>",
   io:format("Created metadata from given record.~n",[]),
   encode(Record, AppendMetaData);

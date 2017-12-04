@@ -10,7 +10,7 @@
 
 %% @doc Start the proccess which deal with the Messages Storage
 start() -> 
-    io:fwrite("Started message store"),
+    io:fwrite("Started message store~n"),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc Internal function (should not be used outisde of module). See start() for outisde ussage
@@ -90,6 +90,6 @@ has_complete_message(Id) ->
     gen_server:call(messagestore, {has_complete_message, Id}).
 
 
-terminate(_Reason, _State) -> io:fwrite("Stopped message store").
+terminate(_Reason, _State) -> io:fwrite("Stopped message store~n").
 handle_info(_Message, State) -> {noreply, State}.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.

@@ -4,11 +4,22 @@
 -export([start/0, spawnParser/1, read_file_chunks/1,loop_through_file/5, rest_of_file/5, decode/2, parse/4, send_msghandler/1, field_num/1, get_type/2, set_field/3]).
 
 start() ->
+  io:format("Starting parser~n",[]),
   % Read from folder for files
-  {ok, FileNames} = file:list_dir_all("./binaryfiles/"),
-  io:format("~s~n", [FileNames]),
-  Pid = spawn(parser, spawnParser, [FileNames]),
-  {ok, Pid}.
+  case filelib:ensure_dir("./binaryfiles/") of
+    ok ->
+      case file:list_dir_all("./binaryfiles/") of
+        {ok, FileNames} -> 
+          io:format("~s~n", [FileNames]),
+          Pid = spawn(parser, spawnParser, [FileNames]),
+          {ok, Pid};
+        {error, _Reason} ->
+          {error, "Failed to read from folder \"binaryfiles\""}
+      end;
+    {error, _Reason} ->
+      {error, "Failed to make folder \"binaryfiles\""}
+  end.
+
 
 spawnParser([Head|Tail]) ->
   % Spawn parser processes here for each file

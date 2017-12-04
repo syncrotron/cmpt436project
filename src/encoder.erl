@@ -5,10 +5,8 @@
 
 
 start() ->
-  receive
-    Record ->
-      Pid = spawn(encoder, master,[])
-  end,
+  io:format("Starting encoder~n",[]),
+  Pid = spawn(encoder, master_encoder, []),
   {ok, Pid}.
 
 % Loop through listening for a message containing a Record.

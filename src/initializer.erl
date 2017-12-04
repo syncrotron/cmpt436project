@@ -4,7 +4,6 @@
 -export([init/1]).
 
 main() ->
-    domaintable:init(),
     supervisor:start_link(initializer, []).
 
 init(_Args) ->

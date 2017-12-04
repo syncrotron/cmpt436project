@@ -12,8 +12,9 @@
 %%%Could also contact the message handler instead by just flipping receive and send.
 start() ->
   Pid = self(),
+  domaintable:init(),
+
   %%% Register self to make availalbe to Message handler
-  init(),
   io:format("Starting DomainTable~n",[]),
   HRPid = spawn(domaintable,handleRequests,[]),
   spawn(domaintable,oldObjectRemover,[]),
@@ -53,11 +54,16 @@ writeSendToFile(ObjId,MessageId)->
 init() ->
   case filelib:is_dir(?DomaintableDB) of
     true->
-      mnesia:start(),
+      io:format("Domaintable already exists~n",[]),
+      application:set_env(mnesia, dir, ?DomaintableDB),
+      mnesia:create_schema([node()]),
+      mnesia:start();
 
-      ok;
+
+
     false->
-    application:set_env(mnesia, dir, ?DomaintableDB),   %%%Sets directory to save database in
+       %%%Sets directory to save database in
+       io:format("Creating domaintable~n",[]),
 
 
     ok,_ =  mnesia:create_schema([node()]),
@@ -78,8 +84,8 @@ test()->
   application:set_env(mnesia, dir, ?DomaintableDB),
   Mars1 = #object{id = 1,position = {23,50,4},delta_pos =x},
   Saturn1 = #object{id = 2, position = {100,-4, 70}, delta_pos =x},
-  %insert_object(Mars1),
-  %insert_object(Saturn1),
+  insert_object(Mars1),
+  insert_object(Saturn1),
   Objects = object_by_Id(1),
   [Obj|OtherObjects] = Objects,
   Marsid = Mars1#object.id,
@@ -267,7 +273,14 @@ route(Target, DontUse)->
 
 oldObjectRemover()->
   {_,OldObjs} = selectTimedOutObjs(),
-  removeEach(OldObjs),
+  case OldObjs of
+    {no_exists,_}->
+      ok;
+    _->
+      io:format("Old objs~w~n",[OldObjs]),
+      removeEach(OldObjs)
+    end,
   timer:sleep(timer:minutes(5)),
   oldObjectRemover()
+
   .

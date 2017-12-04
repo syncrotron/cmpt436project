@@ -11,8 +11,8 @@
 %% @doc Start the proccess which deal with the Messages Storage
 start() -> 
     io:fwrite("Started message store~n"),
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []),
-    spawn(messagestore, clean_up_loop, []).
+    spawn(messagestore, clean_up_loop, []),
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc Internal function (should not be used outisde of module). See start() for outisde ussage
 init([]) ->

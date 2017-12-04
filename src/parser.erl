@@ -7,7 +7,8 @@ start() ->
   % Read from folder for files
   {ok, FileNames} = file:list_dir_all("./binaryfiles/"),
   io:format("~s~n", [FileNames]),
-  spawnParser(FileNames).
+  Pid = spawn(parser, spawnParser, [FileNames]),
+  {ok, Pid}.
 
 spawnParser([Head|Tail]) ->
   % Spawn parser processes here for each file

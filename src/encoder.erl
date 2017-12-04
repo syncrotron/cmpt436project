@@ -19,13 +19,13 @@ master_encoder() ->
 
 test_start() ->
   TestRecord = #message{sourceid = <<4:8, 0:56>>,
-                        sourceposition = unicode:characters_to_binary("{7,1,0}"),
+                        sourceposition = {7,1,0},
                         senderid = <<3:8, 0:56>>,
-                        senderposition = unicode:characters_to_binary("{5,-9,5}"),
-                        sequence = unicode:characters_to_binary("{1,1}"),
+                        senderposition = {5,9,5},
+                        sequence = {1,1},
                         request = unicode:characters_to_binary("1"),
                         ftype = unicode:characters_to_binary("txt"),
-                        destination = unicode:characters_to_binary("{0,0,0}"),
+                        destination = {0,0,0},
                         body = unicode:characters_to_binary("Hello")
                         },
   set_metadata(TestRecord, ?TAGS, "").
@@ -41,12 +41,15 @@ set_metadata(Record, [], Metadata) ->
   encode(Record, AppendMetaData);
 set_metadata(Record, [Head|Tail], Metadata) ->
   FieldName = element(2, Head),
+  io:format("~w~n",[Record]),
+  io:format("~s~n",[FieldName]),
   Data = get_field(FieldName, Record),
   Result = io_lib:format("~p",[Data]),
   StringData = lists:flatten(Result),      % convert Data to utf-8
   StringFieldName = atom_to_list(FieldName),
   AppendMetaData = Metadata ++ "<" ++ StringFieldName ++ ">" ++ StringData ++ "</" ++ StringFieldName ++ ">",
   set_metadata(Record, Tail, AppendMetaData).
+
 
 % https://stackoverflow.com/questions/10821930/erlang-dynamic-record-editing
 field_num(Field) ->
@@ -68,7 +71,7 @@ encode(Record, Metadata) ->
   io:format("Encoding message.~n",[]),
   % Convert metadata record to binary and prepend to the message wrapped around encoded <data> tags.
   EncodedMetadata = unicode:characters_to_binary(Metadata),
-  Message = EncodedMetadata ++ Record#message.body,
+  Message = [EncodedMetadata] ++ [Record#message.body],
   FileID = unicode:characters_to_list(Record#message.request),
   write_message_to_file(FileID, Message).
 
@@ -85,7 +88,7 @@ send_message(IoDevice,Bytes) ->
 % For testing.
 % File is a file name, Bytes is the data.
 write_message_to_file(FileID, Bytes) ->
-  Directory = "sendMessages"++FileID++"/",
+  Directory = "sendMessages/"++FileID++"/",
   filelib:ensure_dir(Directory),
   FilePath = Directory++"message",
   case file:write_file(FilePath, Bytes) of

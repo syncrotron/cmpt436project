@@ -11,13 +11,13 @@ all() ->
 encode_test(_Config) ->
   Pid = spawn(encoder, master_encoder, []),
   TestRecord = #message{sourceid = <<4:8, 0:56>>,
-                        sourceposition = unicode:characters_to_binary("{7,1,0}"),
+                        sourceposition = {7,1,0},
                         senderid = <<3:8, 0:56>>,
-                        senderposition = unicode:characters_to_binary("{5,-9,5}"),
-                        sequence = unicode:characters_to_binary("{1,1}"),
+                        senderposition = {5,9,5},
+                        sequence = {1,1},
                         request = unicode:characters_to_binary("1"),
                         ftype = unicode:characters_to_binary("txt"),
-                        destination = unicode:characters_to_binary("{0,0,0}"),
+                        destination = {0,0,0},
                         body = unicode:characters_to_binary("Hello")
                         },
   SourceIDList = unicode:characters_to_list(<<4:8, 0:56>>),

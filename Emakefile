@@ -1,3 +1,2 @@
-{["src/*", "test/*" ], [{i,"include"}, {outdir, "ebin"}]}.
-{["src/*", "tables/*" ], [{i,"include"}, {outdir, "tables"}]}.
-{["test/suites/*"], [{i,"include"}, {outdir, "test/suites"}]}.
+{["src/*", "test/*"], [load, {i,"include"}, {outdir, "ebin"}]}.
+{"test/suites/*", [load, {i,"include"}, {outdir, "test/suites"}]}.

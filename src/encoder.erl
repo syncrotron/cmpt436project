@@ -1,15 +1,36 @@
 -module(encoder).
 -include("../include/tags.hrl").
 -include("../include/message.hrl").
--export([start/0, set_metadata/3, field_num/1, get_field/2, encode/2, send_message/2, write_message_to_file/2]).
+-export([start/0, master_encoder/0, test_start/0, set_metadata/3, field_num/1, get_field/2, encode/2, send_message/2, write_message_to_file/2]).
+
+
+start() ->
+  receive
+    Record ->
+      Pid = spawn(encoder, master,[])
+  end,
+  {ok, Pid}.
 
 % Loop through listening for a message containing a Record.
-start() ->
+master_encoder() ->
   receive
     Record ->
       spawn(encoder, set_metadata,[Record, ?TAGS, ""])
   end,
-  start().
+  master_encoder().
+
+test_start() ->
+  TestRecord = #message{sourceid = <<4:8, 0:56>>,
+                        sourceposition = unicode:characters_to_binary("{7,1,0}"),
+                        senderid = <<3:8, 0:56>>,
+                        senderposition = unicode:characters_to_binary("{5,-9,5}"),
+                        sequence = unicode:characters_to_binary("{1,1}"),
+                        request = unicode:characters_to_binary("1"),
+                        ftype = unicode:characters_to_binary("txt"),
+                        destination = unicode:characters_to_binary("{0,0,0}"),
+                        body = unicode:characters_to_binary("Hello")
+                        },
+  set_metadata(TestRecord, ?TAGS, "").
 
 %% Record - contains the message and information for metadata.
 %% [Head|Tail] - List of tags/record fields defined

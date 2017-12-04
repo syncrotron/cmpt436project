@@ -9,7 +9,7 @@ all() ->
 
 
 encode_test(_Config) ->
-  Pid = spawn(encoder, start, []),
+  Pid = spawn(encoder, master_encoder, []),
   TestRecord = #message{sourceid = <<4:8, 0:56>>,
                         sourceposition = unicode:characters_to_binary("{7,1,0}"),
                         senderid = <<3:8, 0:56>>,

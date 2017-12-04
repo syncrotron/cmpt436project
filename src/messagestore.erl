@@ -9,7 +9,7 @@
 -record(item, {deletion_flag = false, message_sequence}).
 
 %% @doc Start the proccess which deal with the Messages Storage
-start() -> 
+start() ->
     io:fwrite("Started message store~n"),
     spawn(messagestore, clean_up_loop, []),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -19,7 +19,7 @@ init([]) ->
     Store = dict:new(),
     {ok, Store}.
 
-clean_up_loop() -> 
+clean_up_loop() ->
     receive
         after 5*60*1000 -> % 5 min
             clean_up(),
@@ -28,18 +28,18 @@ clean_up_loop() ->
     end.
 
 %% @doc Internal function (should not be used outisde of module). See add_message() for outisde ussage
-handle_cast({add_message, Message}, Store) -> 
+handle_cast({add_message, Message}, Store) ->
     NewStore = case dict:find(Message#message.sourceid, Store) of
-        {ok, Previous} -> 
+        {ok, Previous} ->
             UpdatedItem = Previous#item{message_sequence=[Message] ++ Previous#item.message_sequence},
             dict:store(Message#message.sourceid, UpdatedItem, Store);
-        error -> 
+        error ->
             dict:store(Message#message.sourceid, #item{message_sequence=[Message]}, Store)
     end,
     {noreply, NewStore};
 
 %% @doc Internal function (should not be used outisde of module). See flag_message_for_deletion() for outisde ussage
-handle_cast({flag_message_for_deletion, Id}, Store) -> 
+handle_cast({flag_message_for_deletion, Id}, Store) ->
     NewStore = case dict:find(Id, Store) of
         {ok, Item} -> dict:store(Id, Item#item{deletion_flag=true}, Store);
         error -> Store
@@ -53,7 +53,7 @@ handle_cast({clean_up}, Store) ->
 %% @doc Internal function (should not be used outisde of module). See get_message() for outisde ussage
 handle_call({get_message, Id}, _From, Store) ->
     case dict:find(Id, Store) of
-        {ok, Item} -> 
+        {ok, Item} ->
             Sorted = sort_message_parts(Item#item.message_sequence),
             {reply, Sorted, Store};
         error -> {reply, nosuchitem, Store}
@@ -62,11 +62,11 @@ handle_call({get_message, Id}, _From, Store) ->
 %% @doc Internal function (should not be used outisde of module). See has_complete_message() for outisde ussage
 handle_call({has_complete_message, Id}, _From, Store) ->
     case dict:find(Id, Store) of
-        {ok, Item} -> 
+        {ok, Item} ->
             Last = lists:last(Item#item.message_sequence),
             Sorted = sort_message_parts(Item#item.message_sequence),
             {_Number, SequenceLength} = Last#message.sequence,
-            if 
+            if
                 length(Item#item.message_sequence) == SequenceLength ->
                     {reply, {true, Sorted}, Store};
                 true ->
@@ -78,7 +78,7 @@ handle_call({has_complete_message, Id}, _From, Store) ->
 
 sort_message_parts(List) ->
     lists:sort(
-        fun(A, B) -> 
+        fun(A, B) ->
             {N1, _M1} = A#message.sequence,
             {N2, _M2} = B#message.sequence,
              N1 < N2
@@ -87,12 +87,12 @@ sort_message_parts(List) ->
 %% @doc Add a partial message to the store
 add_message(Message) ->
     gen_server:cast(messagestore, {add_message, Message}).
-    
+
 %% @doc Flag a message for deletion. When deletion is performed will not be known
 flag_message_for_deletion(Id) ->
     gen_server:cast(messagestore, {flag_message_for_deletion, Id}).
 
-%% @doc Get all message parts based on id. Will return a list of the 
+%% @doc Get all message parts based on id. Will return a list of the
 %%      message part or atom nosuchitem if the id doesn't match any messages
 get_message(Id) ->
     gen_server:call(messagestore, {get_message, Id}).
@@ -100,7 +100,7 @@ get_message(Id) ->
 %% @doc Check to see if a whole message has been stored. Returns either
 %%      {true, <list of message parts>}, {false, <list of message parts>}
 %%      or atom nosuchitem
-has_complete_message(Id) -> 
+has_complete_message(Id) ->
     gen_server:call(messagestore, {has_complete_message, Id}).
 
 clean_up() ->

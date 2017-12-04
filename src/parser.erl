@@ -154,4 +154,5 @@ get_type(TagDef, FieldData) ->
 send_msghandler(Record) ->
   io:format("PID ~w -- Populated Record - ~w~n", [self(), Record]),
   % Message pass to message handler the record.
-  ok.
+  % MessageHandlerPID ! Record,
+  Record.

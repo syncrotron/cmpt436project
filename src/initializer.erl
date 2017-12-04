@@ -20,19 +20,20 @@ init(_Args) ->
                     type => worker,
                     modules => [messagestore]},
 
-                  #{id => messagehandler,
-                    start => {messagehandler, start, []},
-                    restart => permanent,
-                    shutdown => brutal_kill,
-                    type => worker,
-                    modules => [messagehandler]},
+
 
                   #{id => domaintable,
                     start => {domaintable, start, []},
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker,
-                    modules => [domaintable]}
+                    modules => [domaintable]},
+                    #{id => messagehandler,
+                      start => {messagehandler, start, []},
+                      restart => permanent,
+                      shutdown => brutal_kill,
+                      type => worker,
+                      modules => [messagehandler]},
 
                   #{id => encoder,
                     start => {encoder, start, []},

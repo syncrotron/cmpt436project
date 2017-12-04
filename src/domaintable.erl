@@ -13,6 +13,7 @@
 start() ->
   Pid = self(),
   %%% Register self to make availalbe to Message handler
+  init(),
   io:format("Starting DomainTable~n",[]),
   HRPid = spawn(domaintable,handleRequests,[]),
   spawn(domaintable,oldObjectRemover,[]),
@@ -52,6 +53,8 @@ writeSendToFile(ObjId,MessageId)->
 init() ->
   case filelib:is_dir(?DomaintableDB) of
     true->
+      mnesia:start(),
+
       ok;
     false->
     application:set_env(mnesia, dir, ?DomaintableDB),   %%%Sets directory to save database in

@@ -25,9 +25,9 @@ handleRequests() ->
     {insert_object,Object} ->
       insert_object(Object);
 
-    {route, Target, DontUse}->
+    {route, Target, DontUse, MessageId}->
       Result = route(Target, DontUse),
-      writeSendToFile(Result)
+      writeSendToFile(Result,MessageId)
 
       %MhPid ! Result
 
@@ -35,12 +35,14 @@ handleRequests() ->
   handleRequests()
   .
 
-writeSendToFile(ObjId)->
-  StrId = integer_to_list(ObjId),
-  Directory = "sendMessages"++StrId++"/",
+writeSendToFile(ObjId,MessageId)->
+  StrObjId = integer_to_list(ObjId),
+  FileID = unicode:characters_to_list(MessageId),
+  Directory = "sendMessages"++MessageId++"/",
   filelib:ensure_dir(Directory),
-  FilePath = Directory++StrId++".sendTo",
-  file:write_file(FilePath, io_libe:fwrite("~p.\n",[StrId]))
+  FilePath = Directory++MessageId++".dest",
+
+  file:write_file(FilePath, io_libe:fwrite("~p.\n",[StrObjId]))
 
   .
 

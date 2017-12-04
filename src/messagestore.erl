@@ -4,19 +4,28 @@
 -include("../include/message.hrl").
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, handle_info/2, code_change/3]).
--export([start/0, get_message/1, add_message/1, flag_message_for_deletion/1, has_complete_message/1]).
+-export([start/0, get_message/1, add_message/1, flag_message_for_deletion/1, has_complete_message/1, clean_up/0, clean_up_loop/0]).
 
 -record(item, {deletion_flag = false, message_sequence}).
 
 %% @doc Start the proccess which deal with the Messages Storage
 start() -> 
-    io:fwrite("Started message store"),
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    io:fwrite("Started message store~n"),
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []),
+    spawn(messagestore, clean_up_loop, []).
 
 %% @doc Internal function (should not be used outisde of module). See start() for outisde ussage
 init([]) ->
     Store = dict:new(),
     {ok, Store}.
+
+clean_up_loop() -> 
+    receive
+        after 5*60*1000 -> % 5 min
+            clean_up(),
+            io:fwrite("now~n"),
+            clean_up_loop()
+    end.
 
 %% @doc Internal function (should not be used outisde of module). See add_message() for outisde ussage
 handle_cast({add_message, Message}, Store) -> 
@@ -32,9 +41,13 @@ handle_cast({add_message, Message}, Store) ->
 %% @doc Internal function (should not be used outisde of module). See flag_message_for_deletion() for outisde ussage
 handle_cast({flag_message_for_deletion, Id}, Store) -> 
     NewStore = case dict:find(Id, Store) of
-        {ok, Item} -> dict:store(Item#item{deletion_flag=true});
+        {ok, Item} -> dict:store(Id, Item#item{deletion_flag=true}, Store);
         error -> Store
     end,
+    {noreply, NewStore};
+
+handle_cast({clean_up}, Store) ->
+    NewStore = dict:filter(fun(_Id, Item) -> Item#item.deletion_flag == false end, Store),
     {noreply, NewStore}.
 
 %% @doc Internal function (should not be used outisde of module). See get_message() for outisde ussage
@@ -61,6 +74,7 @@ handle_call({has_complete_message, Id}, _From, Store) ->
             end;
         error -> {reply, nosuchitem, Store}
     end.
+
 
 sort_message_parts(List) ->
     lists:sort(
@@ -89,7 +103,10 @@ get_message(Id) ->
 has_complete_message(Id) -> 
     gen_server:call(messagestore, {has_complete_message, Id}).
 
+clean_up() ->
+    gen_server:cast(messagestore, {clean_up}).
 
-terminate(_Reason, _State) -> io:fwrite("Stopped message store").
+
+terminate(_Reason, _State) -> io:fwrite("Stopped message store~n").
 handle_info(_Message, State) -> {noreply, State}.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.

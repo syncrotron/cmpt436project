@@ -21,6 +21,8 @@ start() ->
   .
 %% @doc Handles requests from the message handler
 handleRequests() ->
+  register(pidOfdomaintable, self()),
+
   receive
     {insert_object,Object} ->
       insert_object(Object);

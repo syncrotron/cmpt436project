@@ -33,6 +33,7 @@ encode_test(_Config) ->
                                                 "</metadata>Hello"),
   Pid ! TestRecord,
   FileID = unicode:characters_to_list(TestRecord#message.request),
+  timer:sleep(1000),
   {ok, BinaryResult} = file:read_file("sendMessages"++FileID++"/message"),
   case BinaryResult == ExpectedBinary of
     true ->

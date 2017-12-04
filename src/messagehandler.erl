@@ -27,8 +27,9 @@ init(_Args) ->
     %io:format("Pid Of Domain Table: ~s~n", pidofdomaintable),
     %io:format("Pid Of Encoder Master: ~s~n", pidofencodermaster),
     io:format("~n..........................................~n"),
-    {Mega,Sec,Micro} = get_timestamp(),
-    File = Mega++Sec++Micro++".txt",
+    %{Mega,Sec,Micro} = get_timestamp(),
+    %File = Mega++Sec++Micro++".txt",
+    File = integer_to_list(get_timestamp())++".txt",
     file:write_file("/doc/runlogs/" ++ File , ""),
     error_logger:logfile({open, "/doc/runlogs/" ++ File}),
     {ok, ?MODULE}.

@@ -3,7 +3,7 @@
 -export([main/0]).
 -export([init/1]).
 
-main() -> 
+main() ->
     domaintable:init(),
     supervisor:start_link(initializer, []).
 
@@ -25,8 +25,8 @@ init(_Args) ->
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker,
-                    modules => [messagehandler]}, 
-                    
+                    modules => [messagehandler]},
+
                   #{id => domaintable,
                     start => {domaintable, start, []},
                     restart => permanent,

@@ -7,9 +7,10 @@
           object_by_Id_test/1,
           object_by_position/1,
           remove_object_test/1,
-          calcEuclidean_test/1]).
+          calcEuclidean_test/1,
+          writeTest/1]).
 
-all() -> [insert_object_test,remove_object_test,calcEuclidean_test].
+all() -> [insert_object_test,remove_object_test,calcEuclidean_test,writeTest].
 
 
 insert_object_test(_Config)->
@@ -48,6 +49,17 @@ calcEuclidean_test(_Config)->
 
   .
 
+writeTest(_Config)->
+  Result = filelib:ensure_dir("../foo/"),
+  case Result of
+    ok->
+      ok;
+    _->
+      {_,Reason} = Result,
+      checkResult(Reason)
+    end
+
+  .
 
 checkResult(Result)->
   case Result of

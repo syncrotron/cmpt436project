@@ -29,10 +29,10 @@ init(_Args) ->
     io:format("~n..........................................~n"),
     %{Mega,Sec,Micro} = get_timestamp(),
     %File = Mega++Sec++Micro++".txt",
-    File = integer_to_list(get_timestamp())++".txt",
-    file:write_file("/doc/runlogs/" ++ File , ""),
-    error_logger:logfile({open, "/doc/runlogs/" ++ File}),
-    {ok, ?MODULE}.
+    %File = integer_to_list(get_timestamp())++".txt",
+    %file:write_file("/doc/runlogs/" ++ File , ""),
+    %error_logger:logfile({open, "/doc/runlogs/" ++ File}),
+    {ok, self()}.
 
 %% @doc Internal timestamp generator for error error_logger
 get_timestamp() ->
@@ -47,14 +47,15 @@ pass_message(Msg) when is_record(Msg, message)->
     gen_server:cast(?MODULE, {message, Msg});
 
 pass_message(UnkownMsg)->
-    error_logger:error_msg("Unkown Message Passed: ~p~n", [UnkownMsg]).
+    ok.
+    %error_logger:error_msg("Unkown Message Passed: ~p~n", [UnkownMsg]).
 
 %% @doc Main Handler. Should not be used outside module
 handle_cast({message, Msg}, _) ->
-    error_logger:info_msg("Recieved Message From ~p~n
-                           Sequence Number ~p in ~p~n
-                           Headed to ~p~n"
-                           , [Msg#message.sourceid, element(1, Msg#message.sequence), element(2, Msg#message.sequence), Msg#message.destination]),
+    %error_logger:info_msg("Recieved Message From ~p~n
+    %                       Sequence Number ~p in ~p~n
+    %                       Headed to ~p~n"
+    %                       , [Msg#message.sourceid, element(1, Msg#message.sequence), element(2, Msg#message.sequence), Msg#message.destination]),
 
     %% updates domain table entry with sender info
     MsgObject = #object{id=Msg#message.senderid,

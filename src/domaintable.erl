@@ -13,11 +13,11 @@
 start() ->
   Pid = self(),
   %%% Register self to make availalbe to Message handler
-  io:format("Establishing connection with Message Handler~n",[]),
+  io:format("Starting DomainTable~n",[]),
   HRPid = spawn(domaintable,handleRequests,[]),
   spawn(domaintable,oldObjectRemover,[]),
   %return HandleRequest pid
-  HRPid
+  {ok,HRPid}
   .
 %% @doc Handles requests from the message handler
 handleRequests() ->

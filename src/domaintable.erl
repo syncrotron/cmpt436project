@@ -18,8 +18,8 @@ start() ->
   HRPid = spawn(domaintable,handleRequests,[]),
   spawn(domaintable,oldObjectRemover,[]),
   %return HandleRequest pid
-  {ok,HRPid}
-  .
+  {ok, HRPid}.
+
 %% @doc Handles requests from the message handler
 handleRequests() ->
   register(pidOfdomaintable, self()),
@@ -35,8 +35,7 @@ handleRequests() ->
       %MhPid ! Result
 
   end,
-  handleRequests()
-  .
+  handleRequests().
 
 writeSendToFile(ObjId,MessageId)->
   StrObjId = integer_to_list(ObjId),

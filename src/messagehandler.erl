@@ -8,7 +8,7 @@
 -export([start/0, stop/0, pass_message/1]).
 
 % gen_server callbacks
--export([init/0, handle_call/3, handle_cast/2, terminate/2, handle_info/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, terminate/2, handle_info/2, code_change/3]).
 
 
 %% ====================================================================
@@ -22,10 +22,10 @@ start() ->
 stop() ->
     gen_server:cast(?MODULE, shutdown).
 
-init() ->
+init(_Args) ->
     io:format("Initializing Satellite Message Handler...~n"),
-    io:format("Pid Of Domain Table: ~s~n", pidOfdomaintable),
-    io:format("Pid Of Encoder Master: ~s~n", pidofencodermaster),
+    %io:format("Pid Of Domain Table: ~s~n", pidofdomaintable),
+    %io:format("Pid Of Encoder Master: ~s~n", pidofencodermaster),
     io:format("~n..........................................~n"),
     {Mega,Sec,Micro} = get_timestamp(),
     File = Mega++Sec++Micro++".txt",

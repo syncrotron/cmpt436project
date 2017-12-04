@@ -4,6 +4,7 @@
 -export([init/1]).
 
 main() -> 
+    domaintable:init(),
     supervisor:start_link(initializer, []).
 
 init(_Args) ->
@@ -20,7 +21,7 @@ init(_Args) ->
                     modules => [messagestore]},
 
                   #{id => messagehandler,
-                    start => {messagehandler, start, [{1, 2, 3}]},
+                    start => {messagehandler, start, []},
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker,
@@ -31,8 +32,13 @@ init(_Args) ->
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker,
-                    modules => [domaintable]}],
+                    modules => [domaintable]}
 
-    %io:fwrite(supervisor:which_children(initializer)),
+                  #{id => encoder,
+                    start => {encoder, start, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker,
+                    modules => [encoder]}],
 
     {ok, {SupFlags, ChildSpecs}}.

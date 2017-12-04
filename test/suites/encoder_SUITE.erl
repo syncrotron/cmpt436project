@@ -32,7 +32,8 @@ encode_test(_Config) ->
                                                 "<destination>{0,0,0}</destination>" ++
                                                 "</metadata>Hello"),
   Pid ! TestRecord,
-  {ok, BinaryResult} = file:read_file("encoder_output"),
+  FileID = unicode:characters_to_list(TestRecord#message.request),
+  {ok, BinaryResult} = file:read_file("sendMessages"++FileID++"/message"),
   case BinaryResult == ExpectedBinary of
     true ->
       ct:log("Passed encoder test.");

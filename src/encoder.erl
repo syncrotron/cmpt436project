@@ -48,7 +48,8 @@ encode(Record, Metadata) ->
   % Convert metadata record to binary and prepend to the message wrapped around encoded <data> tags.
   EncodedMetadata = unicode:characters_to_binary(Metadata),
   Message = EncodedMetadata ++ Record#message.body,
-  write_message_to_file("encoder_output", Message).
+  FileID = unicode:characters_to_list(Record#message.request),
+  write_message_to_file(FileID, Message).
 
 % If we use an IO device.
 % IoDevice takes a pid, Bytes is the data we are sending.
@@ -62,8 +63,11 @@ send_message(IoDevice,Bytes) ->
 
 % For testing.
 % File is a file name, Bytes is the data.
-write_message_to_file(File, Bytes) ->
-  case file:write_file(File, Bytes) of
+write_message_to_file(FileID, Bytes) ->
+  Directory = "sendMessages"++FileID++"/",
+  filelib:ensure_dir(Directory),
+  FilePath = Directory++"message",
+  case file:write_file(FilePath, Bytes) of
     {error, Reason} ->
       io:format("Error: ~w", [Reason]);
     ok ->

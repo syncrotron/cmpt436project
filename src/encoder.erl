@@ -7,10 +7,12 @@
 start() ->
   io:format("Starting encoder~n",[]),
   Pid = spawn(encoder, master_encoder, []),
+  register(pidofencodermaster, Pid),
   {ok, Pid}.
 
 % Loop through listening for a message containing a Record.
 master_encoder() ->
+
   receive
     Record ->
       spawn(encoder, set_metadata,[Record, ?TAGS, ""])
@@ -34,15 +36,13 @@ test_start() ->
 %% [Head|Tail] - List of tags/record fields defined
 %% Metadata - list of utf-8.
 set_metadata(Record, [], Metadata) ->
-  register(pidofencodermaster, self()),
+
 
   AppendMetaData = Metadata ++ "</metadata>",
   io:format("Created metadata from given record.~n",[]),
   encode(Record, AppendMetaData);
 set_metadata(Record, [Head|Tail], Metadata) ->
   FieldName = element(2, Head),
-  io:format("~w~n",[Record]),
-  io:format("~s~n",[FieldName]),
   Data = get_field(FieldName, Record),
   Result = io_lib:format("~p",[Data]),
   StringData = lists:flatten(Result),      % convert Data to utf-8
@@ -88,7 +88,9 @@ send_message(IoDevice,Bytes) ->
 % For testing.
 % File is a file name, Bytes is the data.
 write_message_to_file(FileID, Bytes) ->
-  Directory = "sendMessages/"++FileID++"/",
+  Directory = "D:\\CMPT 436 Project\\cmpt436project\\sendMessages\\",
+  io:format("~s~n", [Directory]),
+
   filelib:ensure_dir(Directory),
   FilePath = Directory++"message",
   case file:write_file(FilePath, Bytes) of

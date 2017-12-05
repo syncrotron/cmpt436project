@@ -17,19 +17,21 @@ start() ->
   %%% Register self to make availalbe to Message handler
   io:format("Starting DomainTable~n",[]),
   HRPid = spawn(domaintable,handleRequests,[]),
+  register(pidOfdomaintable, HRPid),
   spawn(domaintable,oldObjectRemover,[]),
   %return HandleRequest pid
   {ok, HRPid}.
 
 %% @doc Handles requests from the message handler
 handleRequests() ->
-  register(pidOfdomaintable, self()),
 
   receive
     {insert_object,Object} ->
+      io:format("recieved add to table~n",[]),
       insert_object(Object);
 
     {route, Target, DontUse, MessageId}->
+      io:format("Recieved route request. Message id is:~w~n ",[MessageId]),
       Result = route(Target, DontUse),
       writeSendToFile(Result,MessageId)
 
@@ -39,13 +41,14 @@ handleRequests() ->
   handleRequests().
 
 writeSendToFile(ObjId,MessageId)->
-  StrObjId = integer_to_list(ObjId),
+  StrObjId = erlang:binary_to_list(ObjId),
+  %StrObjId = integer_to_list(Id),
   FileID = unicode:characters_to_list(MessageId),
-  Directory = "sendMessages"++MessageId++"/",
+  Directory = "D:\\CMPT 436 Project\\cmpt436project\\sendMessages\\",
   filelib:ensure_dir(Directory),
-  FilePath = Directory++MessageId++".dest",
-
-  file:write_file(FilePath, io_libe:fwrite("~p.\n",[StrObjId]))
+  FilePath = Directory++"dest",
+  io:format("Writing too ~s~n",[FilePath]),
+  file:write_file(FilePath, io_lib:fwrite("~p.\n",[StrObjId]))
 
   .
 
@@ -178,6 +181,7 @@ sortedSmallToTarget(Target)->
       [];
     _Else->
       {_,Objects} = GetAll,
+
       sortedSmallToTarget(Objects, Target, [])
     end
   .

@@ -92,12 +92,12 @@ handle_cast({message, Msg}, _) ->
                                         ftype = <<"OK">>,
                                         destination = {0,0,0},
                                         body = <<>>},
-                    pidOfdomaintable ! {route, {position, Msg#message.destination}, []},
-                    pidofencodermaster ! {OkMsg}
+                    pidOfdomaintable ! {route, {position, Msg#message.destination}, [], Msg#message.request},
+                    pidofencodermaster ! OkMsg
                   end;
                true ->
-                 pidOfdomaintable ! {route, {position, Msg#message.senderposition}, []},
-                 pidofencodermaster ! {Msg}
+                 pidOfdomaintable ! {route, {position, Msg#message.senderposition}, [], Msg#message.request},
+                 pidofencodermaster ! Msg
             end
 
     end,

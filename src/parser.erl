@@ -9,8 +9,8 @@ start() ->
   case filelib:ensure_dir("./binaryfiles/") of
     ok ->
       case file:list_dir_all("./binaryfiles/") of
-        {ok, FileNames} -> 
-          io:format("~s~n", [FileNames]),
+        {ok, FileNames} ->
+
           Pid = spawn(parser, spawnParser, [FileNames]),
           {ok, Pid};
         {error, _Reason} ->
@@ -30,7 +30,7 @@ spawnParser([]) ->
 
 %& Read from raw file one byte at a time.
 read_file_chunks(FileName) ->
-  io:format("~s~n", [FileName]),
+  
   {ok,Message} = file:open(FileName,[read,binary]),
   loop_through_file(Message,<<>>,file:read(Message,1), <<>>, <<>>). % <<>> is bit syntax
 
@@ -164,7 +164,7 @@ get_type(TagDef, FieldData) ->
   end.
 
 send_msghandler(Record) ->
-  io:format("PID ~w -- Populated Record - ~w~n", [self(), Record]),
+
   % Message pass to message handler the record.
   % MessageHandlerPID ! Record,
-  Record.
+  messagehandler:pass_message(Record).
